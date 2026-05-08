@@ -21,29 +21,40 @@ class LoginView extends GetView<LoginController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Logo & Judul Aplikasi
-              const Icon(Icons.recycling, size: 100, color: Colors.green),
-              const SizedBox(height: 20),
-              const Text(
-                "P-WASTE MOBILE",
-                style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green),
-              ),
-              const Text(
-                "PT Pelindo Subregional Kalimantan",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              const SizedBox(height: 50),
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo Pelindo kiri
+                    Image.asset(
+                      'assets/images/pelindo.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
 
+                    const SizedBox(width: 10),
+
+                    // Logo P-Waste kanan
+                    Image.asset(
+                      'assets/images/pwaste.png',
+                      width: 180,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "PT Pelindo Subregional Kalimantan",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
               // Form Input Email (terkoneksi ke local controller)
               TextField(
                 controller: emailController, 
                 decoration: InputDecoration(
                   labelText: 'Email / Username',
-                  prefixIcon: const Icon(Icons.person, color: Colors.green),
+                  prefixIcon: const Icon(Icons.person, color: Colors.blue),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
@@ -56,7 +67,7 @@ class LoginView extends GetView<LoginController> {
                 obscureText: true, // Menyembunyikan teks (titik-titik)
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock, color: Colors.green),
+                  prefixIcon: const Icon(Icons.lock, color: Colors.blue),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
@@ -69,7 +80,7 @@ class LoginView extends GetView<LoginController> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
@@ -84,7 +95,7 @@ class LoginView extends GetView<LoginController> {
                     // TODO: panggil controller.prosesLogin(email, password) jika tersedia
                     Get.snackbar("Info", "Memproses login untuk $email...");
                   },
-                  child: const Text("LOGIN INTERNAL",
+                  child: const Text("LOGIN",
                       style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ),
@@ -102,13 +113,13 @@ class LoginView extends GetView<LoginController> {
                 height: 50,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.green),
+                    side: const BorderSide(color: Colors.blue),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  icon: const Icon(Icons.camera_alt, color: Colors.green),
+                  icon: const Icon(Icons.camera_alt, color: Colors.blue),
                   label: const Text("LAPOR SAMPAT (PENGUNJUNG)",
-                      style: TextStyle(color: Colors.green)),
+                      style: TextStyle(color: Colors.blue)),
                   onPressed: () {
                     // Nanti kita arahkan ke halaman form pengunjung
                     Get.snackbar("Info", "Membuka halaman laporan pengunjung...");
