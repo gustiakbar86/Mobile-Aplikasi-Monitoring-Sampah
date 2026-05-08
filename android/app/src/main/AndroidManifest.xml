@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.ta_monitoring_sampah">
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="ta_monitoring_sampah"
         android:name="${applicationName}"

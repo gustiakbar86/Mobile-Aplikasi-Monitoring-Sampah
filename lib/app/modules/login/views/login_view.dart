@@ -3,14 +3,17 @@ import 'package:get/get.dart';
 
 import '../controllers/login_controller.dart';
 
+
+
 class LoginView extends GetView<LoginController> {
   const LoginView({super.key});
+  
 
   @override
   Widget build(BuildContext context) {
     // Local controllers to avoid referencing missing members on LoginController
-    final TextEditingController emailController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
+    //final TextEditingController emailController = TextEditingController();
+    //final TextEditingController passwordController = TextEditingController();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -51,7 +54,7 @@ class LoginView extends GetView<LoginController> {
                 ),
               // Form Input Email (terkoneksi ke local controller)
               TextField(
-                controller: emailController, 
+                controller: controller.emailC, 
                 decoration: InputDecoration(
                   labelText: 'Email / Username',
                   prefixIcon: const Icon(Icons.person, color: Colors.blue),
@@ -63,7 +66,7 @@ class LoginView extends GetView<LoginController> {
               
               // Form Input Password (menggunakan local controller)
               TextField(
-                controller: passwordController, 
+                controller: controller.passwordC, 
                 obscureText: true, // Menyembunyikan teks (titik-titik)
                 decoration: InputDecoration(
                   labelText: 'Password',
@@ -85,18 +88,22 @@ class LoginView extends GetView<LoginController> {
                         borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () {
-                    // Handle login locally to avoid depending on controller API
-                    final String email = emailController.text.trim();
-                    final String password = passwordController.text;
-                    if (email.isEmpty || password.isEmpty) {
-                      Get.snackbar("Error", "Email dan password tidak boleh kosong");
-                      return;
-                    }
-                    // TODO: panggil controller.prosesLogin(email, password) jika tersedia
-                    Get.snackbar("Info", "Memproses login untuk $email...");
+                  controller.login();
                   },
-                  child: const Text("LOGIN",
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: Obx(() {
+
+                    return controller.isLoading.value
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                          )
+                        : const Text(
+                            "LOGIN",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          );
+                  }),
                 ),
               ),
 
