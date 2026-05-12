@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-class AuthUserService {
+class AuthAdminService {
 
-  static Future<http.Response> loginUser(
+  static Future<http.Response> loginAdmin(
       String email,
       String password,
       ) async {
@@ -12,7 +12,7 @@ class AuthUserService {
     return await http.post(
 
       Uri.parse(
-        'http://127.0.0.1:8000/api/login-user',
+        'http://127.0.0.1:8000/api/login-admin',
       ),
 
       headers: {
@@ -21,8 +21,8 @@ class AuthUserService {
 
       body: jsonEncode({
 
-        "email": email,
-        "password": password,
+        "email_admin": email,
+        "password_admin": password,
 
       }),
     );

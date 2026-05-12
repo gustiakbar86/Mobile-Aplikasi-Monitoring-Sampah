@@ -3,104 +3,205 @@ import 'package:get/get.dart';
 
 import '../controllers/login_controller.dart';
 
-
-
 class LoginView extends GetView<LoginController> {
   const LoginView({super.key});
-  
 
   @override
   Widget build(BuildContext context) {
-    // Local controllers to avoid referencing missing members on LoginController
-    //final TextEditingController emailController = TextEditingController();
-    //final TextEditingController passwordController = TextEditingController();
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // SafeArea agar tampilan tidak tertutup poni/kamera HP atas
+
       body: SafeArea(
+
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 60),
+
+          padding: const EdgeInsets.symmetric(
+            horizontal: 30,
+            vertical: 60,
+          ),
+
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment:
+                CrossAxisAlignment.center,
+
             children: [
+
+              // =========================
+              // LOGO
+              // =========================
               Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Logo Pelindo kiri
-                    Image.asset(
-                      'assets/images/pelindo.png',
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.contain,
-                    ),
+                mainAxisAlignment:
+                    MainAxisAlignment.center,
 
-                    const SizedBox(width: 10),
+                children: [
 
-                    // Logo P-Waste kanan
-                    Image.asset(
-                      'assets/images/pwaste.png',
-                      width: 180,
-                      height: 80,
-                      fit: BoxFit.contain,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  "PT Pelindo Subregional Kalimantan",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-              // Form Input Email (terkoneksi ke local controller)
-              TextField(
-                controller: controller.emailC, 
-                decoration: InputDecoration(
-                  labelText: 'Email / Username',
-                  prefixIcon: const Icon(Icons.person, color: Colors.blue),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
+                  // Logo Pelindo
+                  Image.asset(
+                    'assets/images/pelindo.png',
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.contain,
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  // Logo PWaste
+                  Image.asset(
+                    'assets/images/pwaste.png',
+                    width: 180,
+                    height: 80,
+                    fit: BoxFit.contain,
+                  ),
+                ],
               ),
+
               const SizedBox(height: 20),
-              
-              // Form Input Password (menggunakan local controller)
-              TextField(
-                controller: controller.passwordC, 
-                obscureText: true, // Menyembunyikan teks (titik-titik)
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock, color: Colors.blue),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+
+              // =========================
+              // TITLE
+              // =========================
+              const Text(
+                "PT Pelindo Subregional Kalimantan",
+
+                textAlign: TextAlign.center,
+
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
                 ),
               ),
+
+              const SizedBox(height: 40),
+
+              // =========================
+              // EMAIL
+              // =========================
+              TextField(
+
+                controller: controller.emailC,
+
+                keyboardType:
+                    TextInputType.emailAddress,
+
+                decoration: InputDecoration(
+
+                  labelText: 'Email / Username',
+
+                  prefixIcon: const Icon(
+                    Icons.person,
+                    color: Colors.blue,
+                  ),
+
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // =========================
+              // PASSWORD
+              // =========================
+              TextField(
+
+                controller: controller.passwordC,
+
+                obscureText: true,
+
+                decoration: InputDecoration(
+
+                  labelText: 'Password',
+
+                  prefixIcon: const Icon(
+                    Icons.lock,
+                    color: Colors.blue,
+                  ),
+
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 30),
 
-              // Tombol Login Internal
+              // =========================
+              // BUTTON LOGIN
+              // =========================
               SizedBox(
+
                 width: double.infinity,
                 height: 50,
+
                 child: ElevatedButton(
+
                   style: ElevatedButton.styleFrom(
+
                     backgroundColor: Colors.blue,
+
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius:
+                          BorderRadius.circular(10),
+                    ),
                   ),
+
                   onPressed: () {
-                  controller.login();
+
+                    // validasi kosong
+                    if (controller.emailC.text
+                        .isEmpty) {
+
+                      Get.snackbar(
+                        "Error",
+                        "Email wajib diisi",
+                      );
+
+                      return;
+                    }
+
+                    if (controller.passwordC.text
+                        .isEmpty) {
+
+                      Get.snackbar(
+                        "Error",
+                        "Password wajib diisi",
+                      );
+
+                      return;
+                    }
+
+                    controller.login();
                   },
+
                   child: Obx(() {
 
                     return controller.isLoading.value
-                        ? const CircularProgressIndicator(
-                            color: Colors.white,
+
+                        ? const SizedBox(
+
+                            width: 25,
+                            height: 25,
+
+                            child:
+                                CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
                           )
+
                         : const Text(
+
                             "LOGIN",
+
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
+                              fontWeight:
+                                  FontWeight.bold,
                             ),
                           );
                   }),
@@ -108,28 +209,64 @@ class LoginView extends GetView<LoginController> {
               ),
 
               const SizedBox(height: 30),
+
               const Divider(thickness: 1),
+
               const SizedBox(height: 20),
 
-              // Tombol khusus Masyarakat/Pengunjung (Tanpa Login)
-              const Text("Bukan petugas? Lapor temuan sampah di sini:",
-                  style: TextStyle(fontSize: 12)),
+              // =========================
+              // PENGUNJUNG
+              // =========================
+              const Text(
+
+                "Bukan petugas? Lapor temuan sampah di sini:",
+
+                style: TextStyle(
+                  fontSize: 12,
+                ),
+              ),
+
               const SizedBox(height: 10),
+
               SizedBox(
+
                 width: double.infinity,
                 height: 50,
+
                 child: OutlinedButton.icon(
+
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.blue),
+
+                    side: const BorderSide(
+                      color: Colors.blue,
+                    ),
+
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius:
+                          BorderRadius.circular(10),
+                    ),
                   ),
-                  icon: const Icon(Icons.camera_alt, color: Colors.blue),
-                  label: const Text("LAPOR SAMPAT (PENGUNJUNG)",
-                      style: TextStyle(color: Colors.blue)),
+
+                  icon: const Icon(
+                    Icons.camera_alt,
+                    color: Colors.blue,
+                  ),
+
+                  label: const Text(
+
+                    "LAPOR SAMPAH (PENGUNJUNG)",
+
+                    style: TextStyle(
+                      color: Colors.blue,
+                    ),
+                  ),
+
                   onPressed: () {
-                    // Nanti kita arahkan ke halaman form pengunjung
-                    Get.snackbar("Info", "Membuka halaman laporan pengunjung...");
+
+                    Get.snackbar(
+                      "Info",
+                      "Membuka halaman laporan pengunjung...",
+                    );
                   },
                 ),
               ),

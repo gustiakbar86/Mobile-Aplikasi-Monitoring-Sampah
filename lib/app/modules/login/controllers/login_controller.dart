@@ -13,7 +13,7 @@ class LoginController extends GetxController {
   TextEditingController passwordC =
       TextEditingController();
 
-  var isLoading = false.obs;
+  RxBool isLoading = false.obs;
 
   Future<void> login() async {
 
@@ -21,7 +21,66 @@ class LoginController extends GetxController {
 
       isLoading.value = true;
 
-      final response = await http.post(
+      // =========================
+      // COBA LOGIN ADMIN
+      // =========================
+      final adminResponse = await http.post(
+
+        Uri.parse(
+          'http://127.0.0.1:8000/api/login-admin',
+        ),
+
+        headers: {
+          'Content-Type': 'application/json',
+        },
+
+        body: jsonEncode({
+
+          "email_admin": emailC.text,
+          "password_admin": passwordC.text,
+
+        }),
+      );
+
+      final adminData =
+          jsonDecode(adminResponse.body);
+
+      print(adminData);
+
+      // =========================
+      // JIKA ADMIN BERHASIL
+      // =========================
+      if (adminResponse.statusCode == 200 &&
+          adminData['status'] == true) {
+
+        SharedPreferences prefs =
+            await SharedPreferences.getInstance();
+
+        await prefs.setString(
+            'token',
+            adminData['token']);
+
+        await prefs.setString(
+            'login_as',
+            'admin');
+
+        await prefs.setString(
+            'nama_admin',
+            adminData['admin']['nama_admin']);
+
+        Get.snackbar(
+          "Berhasil",
+          "Login Admin Berhasil",
+        );
+
+        return;
+      }
+
+      // =========================
+      // COBA LOGIN USER
+      // =========================
+      final userResponse = await http.post(
+
         Uri.parse(
           'http://127.0.0.1:8000/api/login-user',
         ),
@@ -31,53 +90,58 @@ class LoginController extends GetxController {
         },
 
         body: jsonEncode({
+
           "email": emailC.text,
           "password": passwordC.text,
+
         }),
       );
 
-      final data = jsonDecode(response.body);
+      final userData =
+          jsonDecode(userResponse.body);
 
-      if (response.statusCode == 200 &&
-          data['status'] == true) {
+      print(userData);
+
+      // =========================
+      // JIKA USER BERHASIL
+      // =========================
+      if (userResponse.statusCode == 200 &&
+          userData['status'] == true) {
 
         SharedPreferences prefs =
             await SharedPreferences.getInstance();
 
-        // simpan token
         await prefs.setString(
             'token',
-            data['token']);
+            userData['token']);
 
-        // simpan user
+        await prefs.setString(
+            'login_as',
+            'user');
+
         await prefs.setString(
             'name',
-            data['user']['name']);
-
-        await prefs.setString(
-            'email',
-            data['user']['email']);
+            userData['user']['name']);
 
         Get.snackbar(
           "Berhasil",
-          data['message'],
+          "Login User Berhasil",
         );
 
-        print(data);
-
-        // pindah halaman
-        // Get.offAllNamed(Routes.HOME);
-
-      } else {
-
-        Get.snackbar(
-          "Error",
-          data['message'] ??
-              "Login gagal",
-        );
+        return;
       }
 
+      // =========================
+      // GAGAL SEMUA
+      // =========================
+      Get.snackbar(
+        "Error",
+        "Email atau Password salah",
+      );
+
     } catch (e) {
+
+      print(e);
 
       Get.snackbar(
         "Error",
