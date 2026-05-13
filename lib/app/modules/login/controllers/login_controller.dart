@@ -128,6 +128,10 @@ class LoginController extends GetxController {
           "Login User Berhasil",
         );
 
+        // PINDAH KE HOME
+        Get.offAllNamed('/home');
+
+
         return;
       }
 
