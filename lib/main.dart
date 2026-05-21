@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'app/routes/app_pages.dart';
 
-void main() {
-  runApp(const PWasteApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ✅ wajib karena pakai async
+
+  // Cek token session
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? token = prefs.getString('token');
+
+  runApp(PWasteApp(initialRoute: token != null ? '/home' : '/login'));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(child: Text("Hello")),
-      ),
-    );
-  }
-}
+// ❌ class MyApp dihapus karena tidak dipakai
 
 class PWasteApp extends StatelessWidget {
-  const PWasteApp({super.key});
+  final String initialRoute; // ✅ terima initialRoute dari main
+
+  const PWasteApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +30,8 @@ class PWasteApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      // 2 Baris ini sangat penting agar Controller ikut dimuat!
-      initialRoute: AppPages.INITIAL, 
-      getPages: AppPages.routes,      
+      initialRoute: initialRoute, // ✅ dinamis berdasarkan session
+      getPages: AppPages.routes,
     );
   }
 }

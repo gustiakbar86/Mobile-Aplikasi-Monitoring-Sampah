@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../app/utils/api_endpoints.dart';
+
 class LoginController extends GetxController {
 
   TextEditingController emailC =
@@ -22,121 +24,59 @@ class LoginController extends GetxController {
       isLoading.value = true;
 
       // =========================
-      // COBA LOGIN ADMIN
-      // =========================
-      final adminResponse = await http.post(
-
-        Uri.parse(
-          'http://127.0.0.1:8000/api/login-admin',
-        ),
-
-        headers: {
-          'Content-Type': 'application/json',
-        },
-
-        body: jsonEncode({
-
-          "email_admin": emailC.text,
-          "password_admin": passwordC.text,
-
-        }),
-      );
-
-      final adminData =
-          jsonDecode(adminResponse.body);
-
-      print(adminData);
-
-      // =========================
-      // JIKA ADMIN BERHASIL
-      // =========================
-      if (adminResponse.statusCode == 200 &&
-          adminData['status'] == true) {
-
-        SharedPreferences prefs =
-            await SharedPreferences.getInstance();
-
-        await prefs.setString(
-            'token',
-            adminData['token']);
-
-        await prefs.setString(
-            'login_as',
-            'admin');
-
-        await prefs.setString(
-            'nama_admin',
-            adminData['admin']['nama_admin']);
-
-        Get.snackbar(
-          "Berhasil",
-          "Login Admin Berhasil",
-        );
-
-        return;
-      }
-
-      // =========================
       // COBA LOGIN USER
       // =========================
       final userResponse = await http.post(
 
-        Uri.parse(
-          'http://127.0.0.1:8000/api/login-user',
-        ),
+        Uri.parse(ApiEndpoints.loginUser), // ✅ pakai endpoint hosting
 
         headers: {
           'Content-Type': 'application/json',
         },
 
         body: jsonEncode({
-
           "email": emailC.text,
           "password": passwordC.text,
-
         }),
       );
 
-      final userData =
-          jsonDecode(userResponse.body);
+      final userData = jsonDecode(userResponse.body);
 
       print(userData);
 
-      // =========================
-      // JIKA USER BERHASIL
-      // =========================
-      if (userResponse.statusCode == 200 &&
-          userData['status'] == true) {
+     // =========================
+     // JIKA USER BERHASIL
+     // =========================
+        if (userResponse.statusCode == 200 &&
+            userData['success'] == true) { // ✅ ganti 'status' → 'success'
 
-        SharedPreferences prefs =
-            await SharedPreferences.getInstance();
+          SharedPreferences prefs =
+          await SharedPreferences.getInstance();
 
-        await prefs.setString(
-            'token',
-            userData['token']);
+          await prefs.setString('token', userData['data']['access_token']); // ✅ ganti
+          await prefs.setString('login_as', userData['data']['role']);       // ✅ ambil role
+          await prefs.setString('name', userData['data']['user']['name']);   // ✅ ganti
 
-        await prefs.setString(
-            'login_as',
-            'user');
-
-        await prefs.setString(
-            'name',
-            userData['user']['name']);
-
-        Get.snackbar(
-          "Berhasil",
-          "Login User Berhasil",
-        );
-
-        // PINDAH KE HOME
-        Get.offAllNamed('/home');
-
-
-        return;
-      }
+          Get.snackbar("Berhasil", "Login Berhasil");
+          Get.offAllNamed('/home');
+          return;
+        }
 
       // =========================
-      // GAGAL SEMUA
+      // LOGOUT
+      // =========================
+          Future<void> logout() async {
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+            await prefs.clear(); // hapus semua data session
+
+            Get.snackbar("Berhasil", "Anda telah logout");
+
+            // Kembali ke halaman login
+            Get.offAllNamed('/login');
+          }
+
+      // =========================
+      // GAGAL
       // =========================
       Get.snackbar(
         "Error",
