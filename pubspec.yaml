@@ -31,12 +31,16 @@ dependencies:
   flutter:
     sdk: flutter
 
+  image_picker: ^1.0.4
+  intl: ^0.19.0
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   get: ^4.7.3
   http: ^1.2.0                 # <-- TAMBAHKAN INI (Untuk tembak API Laravel)
   shared_preferences: ^2.2.3   # <-- TAMBAHKAN INI (Untuk simpan Token Login)
+  fl_chart: ^1.1.0
 
 dev_dependencies:
   flutter_test:

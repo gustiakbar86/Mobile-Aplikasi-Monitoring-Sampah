@@ -4,6 +4,6 @@ class ApiEndpoints {
 
   static const String loginUser  = "$baseUrl/login"; // login user
   static const String loginAdmin = "$baseUrl/login-admin"; 
-  static const String sampahTerkelola = "$baseUrl/sampah-terkelola"; //tampil data sampah terkelola
-  static const String sampahDiserahkan = "$baseUrl/sampah-diserahkan"; //tampil data sampah diserahkan
+  static const String sampahTerkelola = "$baseUrl/sampah-terkelola"; // data sampah terkelola
+  static const String sampahDiserahkan = "$baseUrl/sampah-diserahkan"; // data sampah diserahkan
 }
