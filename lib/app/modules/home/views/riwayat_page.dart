@@ -86,13 +86,33 @@ class SampahDiserahkan {
     this.foto,
   });
 
+// 🌟 Perbaikan parsing tanggal dengan format fleksibel hanya di sampah diserakhan
   factory SampahDiserahkan.fromJson(Map<String, dynamic> json) {
+    String rawDate = json['tgl_diserahkan']?.toString() ?? '-';
+    String formattedDate = '-';
+
+    if (rawDate != '-') {
+      // 1. Potong teks jam/waktu jika ada
+      String cleanDate = rawDate.split('T')[0].split(' ')[0]; 
+      
+      try {
+        // 2. Baca string tanggal bawaan API
+        DateTime parsedDate = DateTime.parse(cleanDate);
+        
+        // 3. Ubah wujudnya menjadi dd-MM-yyyy (contoh: 03-06-2024)
+        formattedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
+      } catch (e) {
+        // Jika error parsing, kembalikan format asli yang sudah dibersihkan
+        formattedDate = cleanDate;
+      }
+    }
+
     return SampahDiserahkan(
       id:            json['id'],
       idLokasi:      json['id_lokasi'] is int ? json['id_lokasi'] : int.tryParse(json['id_lokasi'].toString()) ?? 0,
       idJenis:       json['id_jenis']  is int ? json['id_jenis']  : int.tryParse(json['id_jenis'].toString())  ?? 0,
       idTujuan:      json['id_tujuan'] is int ? json['id_tujuan'] : int.tryParse(json['id_tujuan'].toString()) ?? 0,
-      tanggal:       json['tgl_diserahkan'] ?? '-',
+      tanggal:       formattedDate, // ✅ Akan tampil sebagai dd-MM-yyyy
       lokasiAsal:    json['lokasi_asal']?['nama_lokasi'] ?? '-',
       jenisSampah:   "${json['jenis']?['kategori_jenis'] ?? '-'} - ${json['jenis']?['nama_jenis'] ?? '-'}",
       kategoriJenis: json['jenis']?['kategori_jenis'] ?? '',

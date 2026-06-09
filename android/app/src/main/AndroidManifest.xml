@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="ta_monitoring_sampah"
+        android:label="P-Waste"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
