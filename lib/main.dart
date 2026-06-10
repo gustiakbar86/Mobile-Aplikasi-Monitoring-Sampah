@@ -5,19 +5,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app/routes/app_pages.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // ✅ wajib karena pakai async
+  WidgetsFlutterBinding.ensureInitialized();
 
-  // Cek token session
+  // Cek session
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String? token = prefs.getString('token');
+  String? role = prefs.getString('login_as');
 
-  runApp(PWasteApp(initialRoute: token != null ? '/home' : '/login'));
+  // Tentukan halaman awal berdasarkan token + role
+  String initial = '/login';
+  if (token != null) {
+    initial = (role == 'petugas') ? '/home' : '/admin';
+  }
+
+  runApp(PWasteApp(initialRoute: initial));
 }
 
-// ❌ class MyApp dihapus karena tidak dipakai
-
 class PWasteApp extends StatelessWidget {
-  final String initialRoute; // ✅ terima initialRoute dari main
+  final String initialRoute;
 
   const PWasteApp({super.key, required this.initialRoute});
 
@@ -30,7 +35,7 @@ class PWasteApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      initialRoute: initialRoute, // ✅ dinamis berdasarkan session
+      initialRoute: initialRoute,
       getPages: AppPages.routes,
     );
   }
