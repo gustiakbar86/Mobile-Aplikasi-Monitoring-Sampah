@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -25,6 +26,7 @@ class SampahTerkelola {
   final double beratKg;
   final String? alasanEdit;
   final String? foto;
+  final String user;
 
   SampahTerkelola({
     required this.id,
@@ -37,6 +39,7 @@ class SampahTerkelola {
     required this.beratKg,
     this.alasanEdit,
     this.foto,
+    this.user = '-',
   });
 
   factory SampahTerkelola.fromJson(Map<String, dynamic> json) {
@@ -51,6 +54,7 @@ class SampahTerkelola {
       beratKg:       double.tryParse(json['jumlah_berat'].toString()) ?? 0,
       alasanEdit:    json['alasan_edit'],
       foto:          json['foto_url'] ?? json['foto_kelola'],
+      user:          "${json['user']?['instansi']?['nama_instansi'] ?? '-'} - ${json['user']?['name'] ?? '-'}",
     );
   }
 }
@@ -71,6 +75,7 @@ class SampahDiserahkan {
   final double beratKg;
   final String? alasanEdit;
   final String? foto;
+  final String user;
 
   SampahDiserahkan({
     required this.id,
@@ -85,19 +90,26 @@ class SampahDiserahkan {
     required this.beratKg,
     this.alasanEdit,
     this.foto,
+    this.user = '-',
   });
 
-  // Perbaikan parsing tanggal dengan format fleksibel hanya di sampah diserahkan
+// 🌟 Perbaikan parsing tanggal dengan format fleksibel hanya di sampah diserakhan
   factory SampahDiserahkan.fromJson(Map<String, dynamic> json) {
     String rawDate = json['tgl_diserahkan']?.toString() ?? '-';
     String formattedDate = '-';
 
     if (rawDate != '-') {
-      String cleanDate = rawDate.split('T')[0].split(' ')[0];
+      // 1. Potong teks jam/waktu jika ada
+      String cleanDate = rawDate.split('T')[0].split(' ')[0]; 
+      
       try {
+        // 2. Baca string tanggal bawaan API
         DateTime parsedDate = DateTime.parse(cleanDate);
+        
+        // 3. Ubah wujudnya menjadi dd-MM-yyyy (contoh: 03-06-2024)
         formattedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
       } catch (e) {
+        // Jika error parsing, kembalikan format asli yang sudah dibersihkan
         formattedDate = cleanDate;
       }
     }
@@ -107,7 +119,7 @@ class SampahDiserahkan {
       idLokasi:      json['id_lokasi'] is int ? json['id_lokasi'] : int.tryParse(json['id_lokasi'].toString()) ?? 0,
       idJenis:       json['id_jenis']  is int ? json['id_jenis']  : int.tryParse(json['id_jenis'].toString())  ?? 0,
       idTujuan:      json['id_tujuan'] is int ? json['id_tujuan'] : int.tryParse(json['id_tujuan'].toString()) ?? 0,
-      tanggal:       formattedDate,
+      tanggal:       formattedDate, // ✅ Akan tampil sebagai dd-MM-yyyy
       lokasiAsal:    json['lokasi_asal']?['nama_lokasi'] ?? '-',
       jenisSampah:   "${json['jenis']?['kategori_jenis'] ?? '-'} - ${json['jenis']?['nama_jenis'] ?? '-'}",
       kategoriJenis: json['jenis']?['kategori_jenis'] ?? '',
@@ -115,6 +127,7 @@ class SampahDiserahkan {
       beratKg:       double.tryParse(json['jumlah_berat'].toString()) ?? 0,
       alasanEdit:    json['alasan_edit'],
       foto:          json['foto_url'],
+      user:          "${json['user']?['instansi']?['nama_instansi'] ?? '-'} - ${json['user']?['name'] ?? '-'}",
     );
   }
 }
@@ -125,9 +138,11 @@ class SampahDiserahkan {
 DateTime _parseDateFlexible(String dateStr) {
   if (dateStr == '-') return DateTime.now();
 
+  // 1. Coba format standar ISO bawaan Dart (yyyy-MM-dd)
   DateTime? parsed = DateTime.tryParse(dateStr);
   if (parsed != null) return parsed;
 
+  // 2. Jika gagal, coba pecah secara manual untuk format dd/MM/yyyy atau dd-MM-yyyy
   try {
     List<String> parts = [];
     if (dateStr.contains('/')) {
@@ -135,37 +150,40 @@ DateTime _parseDateFlexible(String dateStr) {
     } else if (dateStr.contains('-')) {
       parts = dateStr.split('-');
     } else if (dateStr.contains(' ')) {
-      parts = dateStr.split(' ')[0].split('-');
+      parts = dateStr.split(' ')[0].split('-'); // handle datetime string with spaces
     }
 
     if (parts.length == 3) {
+      // Cek apakah formatnya dd-MM-yyyy
       if (parts[0].length <= 2 && parts[2].length >= 4) {
         int year = int.parse(parts[2].split(' ')[0]);
         return DateTime(year, int.parse(parts[1]), int.parse(parts[0]));
       }
+      // Cek apakah formatnya yyyy-MM-dd yang lolos parsing standar
       if (parts[0].length >= 4 && parts[2].length <= 2) {
         int year = int.parse(parts[0]);
         return DateTime(year, int.parse(parts[1]), int.parse(parts[2].split(' ')[0]));
       }
     }
   } catch (e) {
-    // abaikan
+    // Abaikan error, akan menggunakan DateTime.now() di bawah
   }
 
+  // 3. Jika semua cara gagal, gunakan tanggal hari ini
   return DateTime.now();
 }
 
 // =========================
 // HALAMAN RIWAYAT
 // =========================
-class RiwayatPage extends StatefulWidget {
-  const RiwayatPage({super.key});
+class DataSampahPage extends StatefulWidget {
+  const DataSampahPage({super.key});
 
   @override
-  State<RiwayatPage> createState() => _RiwayatPageState();
+  State<DataSampahPage> createState() => _DataSampahPageState();
 }
 
-class _RiwayatPageState extends State<RiwayatPage>
+class _DataSampahPageState extends State<DataSampahPage>
     with SingleTickerProviderStateMixin {
 
   late TabController _tabController;
@@ -189,7 +207,7 @@ class _RiwayatPageState extends State<RiwayatPage>
   List<Map<String, dynamic>> lokasiMaster = [];
   List<Map<String, dynamic>> jenisMaster  = []; // id_jenis, nama_jenis, kategori_jenis
   List<Map<String, dynamic>> tujuanAktif  = []; // hanya status aktif
-  List<Map<String, dynamic>> tujuanAll    = []; // semua (utk menampilkan tujuan existing yg dinonaktifkan)
+  List<Map<String, dynamic>> tujuanAll    = []; // semua (utk tujuan existing yg dinonaktifkan)
 
   // ---- Sampah Terkelola ----
   List<SampahTerkelola> listTerkelola       = [];
@@ -272,7 +290,6 @@ class _RiwayatPageState extends State<RiwayatPage>
             lokasiMaster = _toListMap(data['lokasi_asal']);
             jenisMaster  = _toListMap(data['jenis']);
             tujuanAktif  = _toListMap(data['tujuan_sampah']);
-            // tujuan_sampah_all = semua (fallback ke tujuan_sampah bila backend belum diperbarui)
             final all = _toListMap(data['tujuan_sampah_all']);
             tujuanAll = all.isNotEmpty ? all : tujuanAktif;
           });
@@ -485,7 +502,7 @@ class _RiwayatPageState extends State<RiwayatPage>
             .any((e) => _asInt(e['id_jenis']) == item.idJenis)
         ? item.idJenis : null;
     File? foto;
-    bool isLoading = false;
+    bool isLoading           = false;
 
     Get.bottomSheet(
       StatefulBuilder(
@@ -604,9 +621,9 @@ class _RiwayatPageState extends State<RiwayatPage>
 
                   const SizedBox(height: 12),
 
-                  // Keterangan (Alasan Edit)
-                  _editLabel("Alasan Edit", required: true),
-                  _editTextField(controller: alasanC, hint: "Jelaskan alasan perubahan", maxLines: 10),
+                  // Keterangan
+                  _editLabel("Keterangan"),
+                  _editTextField(controller: alasanC, hint: "Opsional", maxLines: 10),
 
                   const SizedBox(height: 16),
 
@@ -615,9 +632,8 @@ class _RiwayatPageState extends State<RiwayatPage>
                     width: double.infinity, height: 44,
                     child: ElevatedButton.icon(
                       onPressed: isLoading ? null : () async {
-                        if (selectedLokasi == null || selectedJenis == null ||
-                            beratC.text.trim().isEmpty || alasanC.text.trim().isEmpty) {
-                          Get.snackbar("Peringatan", "Lengkapi semua field yang wajib (termasuk Alasan Edit)",
+                        if (selectedLokasi == null || selectedJenis == null || beratC.text.trim().isEmpty) {
+                          Get.snackbar("Peringatan", "Lengkapi semua field yang wajib",
                               backgroundColor: Colors.orange, colorText: Colors.white);
                           return;
                         }
@@ -653,7 +669,7 @@ class _RiwayatPageState extends State<RiwayatPage>
                             Get.back();
                             Get.snackbar("Berhasil", "Data berhasil diperbarui",
                                 backgroundColor: Colors.green, colorText: Colors.white);
-                            fetchSampahTerkelola(page: pageTerkelola);
+                            fetchSampahTerkelola();
                           } else {
                             Get.snackbar("Gagal", data['message'] ?? "Terjadi kesalahan",
                                 backgroundColor: Colors.red, colorText: Colors.white);
@@ -722,7 +738,7 @@ class _RiwayatPageState extends State<RiwayatPage>
         ? item.idTujuan : null;
 
     File? foto;
-    bool isLoading = false;
+    bool isLoading           = false;
 
     Get.bottomSheet(
       StatefulBuilder(
@@ -855,9 +871,9 @@ class _RiwayatPageState extends State<RiwayatPage>
 
                   const SizedBox(height: 12),
 
-                  // Keterangan (Alasan Edit)
-                  _editLabel("Alasan Edit", required: true),
-                  _editTextField(controller: alasanC, hint: "Jelaskan alasan perubahan", maxLines: 10),
+                  // Keterangan
+                  _editLabel("Keterangan"),
+                  _editTextField(controller: alasanC, hint: "Opsional", maxLines: 10),
 
                   const SizedBox(height: 16),
 
@@ -867,9 +883,8 @@ class _RiwayatPageState extends State<RiwayatPage>
                     child: ElevatedButton.icon(
                       onPressed: isLoading ? null : () async {
                         if (selectedLokasi == null || selectedJenis == null ||
-                            selectedTujuan == null || beratC.text.trim().isEmpty ||
-                            alasanC.text.trim().isEmpty) {
-                          Get.snackbar("Peringatan", "Lengkapi semua field yang wajib (termasuk Alasan Edit)",
+                            selectedTujuan == null || beratC.text.trim().isEmpty) {
+                          Get.snackbar("Peringatan", "Lengkapi semua field yang wajib",
                               backgroundColor: Colors.orange, colorText: Colors.white);
                           return;
                         }
@@ -947,14 +962,21 @@ class _RiwayatPageState extends State<RiwayatPage>
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      top: false,
       child: Column(
         children: [
-          Container(
-            width: double.infinity,
-            color: const Color(0xFF1A3A6B),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: const Text("Riwayat Inputan",
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle.light,
+            child: Container(
+              width: double.infinity,
+              color: const Color(0xFF1A3A6B),
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 12,
+                left: 16, right: 16, bottom: 12,
+              ),
+              child: const Text("Lihat Data Sampah",
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
           ),
           Container(
             color: Colors.white,
@@ -1050,13 +1072,14 @@ class _RiwayatPageState extends State<RiwayatPage>
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       child: Row(children: const [
         SizedBox(width: 30,  child: Text("No",           style: _headerStyle, textAlign: TextAlign.center)),
+        SizedBox(width: 110, child: Text("User",         style: _headerStyle)),
         SizedBox(width: 50,  child: Text("Foto",         style: _headerStyle, textAlign: TextAlign.center)),
         SizedBox(width: 75,  child: Text("Tanggal",      style: _headerStyle, textAlign: TextAlign.center)),
         SizedBox(width: 110, child: Text("Lokasi Asal",  style: _headerStyle)),
         SizedBox(width: 120, child: Text("Jenis Sampah", style: _headerStyle)),
         SizedBox(width: 60,  child: Text("Berat\n(Kg)",  style: _headerStyle, textAlign: TextAlign.center)),
         SizedBox(width: 110, child: Text("Keterangan",   style: _headerStyle)),
-        SizedBox(width: 50,  child: Text("Aksi",         style: _headerStyle, textAlign: TextAlign.center)),
+        SizedBox(width: 60,  child: Text("Aksi",         style: _headerStyle, textAlign: TextAlign.center)),
       ]),
     );
   }
@@ -1068,13 +1091,14 @@ class _RiwayatPageState extends State<RiwayatPage>
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         SizedBox(width: 30,  child: Text("$index", style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
+        SizedBox(width: 110, child: Text(item.user, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
         SizedBox(width: 50,  child: Center(child: _buildFotoWidget(item.foto))),
         SizedBox(width: 75,  child: Text(item.tanggal, style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
         SizedBox(width: 110, child: Text(item.lokasiAsal, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
         SizedBox(width: 120, child: Text(item.jenisSampah, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
         SizedBox(width: 60,  child: Text("${item.beratKg}", style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
         SizedBox(width: 110, child: Text(item.alasanEdit ?? "-", style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
-        SizedBox(width: 50,  child: Center(child: _buildAksiButton(() => _showEditTerkelola(item)))),
+        SizedBox(width: 60,  child: Center(child: _buildAksiButtons(onEdit: () => _showEditTerkelola(item), onHapus: () => _hapusTerkelola(item.id)))),
       ]),
     );
   }
@@ -1156,6 +1180,7 @@ class _RiwayatPageState extends State<RiwayatPage>
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       child: Row(children: const [
         SizedBox(width: 30,  child: Text("No",           style: _headerStyle, textAlign: TextAlign.center)),
+        SizedBox(width: 110, child: Text("User",         style: _headerStyle)),
         SizedBox(width: 50,  child: Text("Foto",         style: _headerStyle, textAlign: TextAlign.center)),
         SizedBox(width: 75,  child: Text("Tanggal",      style: _headerStyle, textAlign: TextAlign.center)),
         SizedBox(width: 110, child: Text("Lokasi Asal",  style: _headerStyle)),
@@ -1163,7 +1188,7 @@ class _RiwayatPageState extends State<RiwayatPage>
         SizedBox(width: 110, child: Text("Tujuan",       style: _headerStyle)),
         SizedBox(width: 60,  child: Text("Berat\n(Kg)",  style: _headerStyle, textAlign: TextAlign.center)),
         SizedBox(width: 100, child: Text("Keterangan",   style: _headerStyle)),
-        SizedBox(width: 50,  child: Text("Aksi",         style: _headerStyle, textAlign: TextAlign.center)),
+        SizedBox(width: 60,  child: Text("Aksi",         style: _headerStyle, textAlign: TextAlign.center)),
       ]),
     );
   }
@@ -1175,6 +1200,7 @@ class _RiwayatPageState extends State<RiwayatPage>
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         SizedBox(width: 30,  child: Text("$index", style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
+        SizedBox(width: 110, child: Text(item.user, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
         SizedBox(width: 50,  child: Center(child: _buildFotoWidget(item.foto))),
         SizedBox(width: 75,  child: Text(item.tanggal, style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
         SizedBox(width: 110, child: Text(item.lokasiAsal, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
@@ -1182,7 +1208,7 @@ class _RiwayatPageState extends State<RiwayatPage>
         SizedBox(width: 110, child: Text(item.tujuan, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
         SizedBox(width: 60,  child: Text("${item.beratKg}", style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
         SizedBox(width: 100, child: Text(item.alasanEdit ?? "-", style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
-        SizedBox(width: 50,  child: Center(child: _buildAksiButton(() => _showEditDiserahkan(item)))),
+        SizedBox(width: 60,  child: Center(child: _buildAksiButtons(onEdit: () => _showEditDiserahkan(item), onHapus: () => _hapusDiserahkan(item.id)))),
       ]),
     );
   }
@@ -1200,6 +1226,123 @@ class _RiwayatPageState extends State<RiwayatPage>
           errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 20, color: Colors.grey)),
       ),
     );
+  }
+
+  // Tombol aksi admin: Edit + Hapus (disusun vertikal agar muat di kolom)
+  Widget _buildAksiButtons({required VoidCallback onEdit, required VoidCallback onHapus}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onEdit,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(color: const Color(0xFFFFC107), borderRadius: BorderRadius.circular(4)),
+            child: const Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.edit, size: 10, color: Colors.white),
+              SizedBox(width: 2),
+              Text("Edit", style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 4),
+        GestureDetector(
+          onTap: onHapus,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)),
+            child: const Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.delete, size: 10, color: Colors.white),
+              SizedBox(width: 2),
+              Text("Hapus", style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Dialog konfirmasi hapus (gaya sama dengan web)
+  Future<bool> _konfirmasiHapus() async {
+    final r = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.orange, width: 3)),
+            child: const Icon(Icons.priority_high, color: Colors.orange, size: 36),
+          ),
+          const SizedBox(height: 16),
+          const Text("Apakah anda yakin?", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text("Data yang dihapus tidak dapat dikembalikan!",
+              textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
+        ]),
+        actions: [
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            ElevatedButton(
+              onPressed: () => Get.back(result: true),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A3A6B), foregroundColor: Colors.white),
+              child: const Text("Ya, hapus!"),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: () => Get.back(result: false),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              child: const Text("Batal"),
+            ),
+          ]),
+        ],
+      ),
+    );
+    return r == true;
+  }
+
+  Future<void> _hapusTerkelola(int id) async {
+    if (!await _konfirmasiHapus()) return;
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      final res = await http.delete(
+        Uri.parse("${ApiEndpoints.sampahTerkelola}/$id"),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      );
+      final r = jsonDecode(res.body);
+      if (res.statusCode == 200 && r['success'] == true) {
+        Get.snackbar("Berhasil", r['message'] ?? "Data dihapus",
+            backgroundColor: Colors.green, colorText: Colors.white);
+        fetchSampahTerkelola();
+      } else {
+        Get.snackbar("Gagal", r['message'] ?? "Gagal menghapus",
+            backgroundColor: Colors.red, colorText: Colors.white);
+      }
+    } catch (e) {
+      Get.snackbar("Error", e.toString(), backgroundColor: Colors.red, colorText: Colors.white);
+    }
+  }
+
+  Future<void> _hapusDiserahkan(int id) async {
+    if (!await _konfirmasiHapus()) return;
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+      final res = await http.delete(
+        Uri.parse("${ApiEndpoints.sampahDiserahkan}/$id"),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      );
+      final r = jsonDecode(res.body);
+      if (res.statusCode == 200 && r['success'] == true) {
+        Get.snackbar("Berhasil", r['message'] ?? "Data dihapus",
+            backgroundColor: Colors.green, colorText: Colors.white);
+        fetchSampahDiserahkan(page: pageDiserahkan);
+      } else {
+        Get.snackbar("Gagal", r['message'] ?? "Gagal menghapus",
+            backgroundColor: Colors.red, colorText: Colors.white);
+      }
+    } catch (e) {
+      Get.snackbar("Error", e.toString(), backgroundColor: Colors.red, colorText: Colors.white);
+    }
   }
 
   Widget _buildAksiButton(VoidCallback onTap) {

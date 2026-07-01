@@ -22,84 +22,137 @@ class _InputSampahPageState extends State<InputSampahPage>
 
   late TabController _tabController;
 
-  // =========================
-  // DATA DROPDOWN (hardcode)
-  // =========================
-  final List<Map<String, dynamic>> listLokasi = [
-    {"id": 1, "nama": "Area Kantor"},
-    {"id": 2, "nama": "Area Tempat Parkir/Taman/Jalan"},
-    {"id": 3, "nama": "Area Ruang Tunggu"},
-    {"id": 4, "nama": "Area Tempat Makan"},
-    {"id": 5, "nama": "Sampah Kapal"},
-    {"id": 6, "nama": "Area Lain"},
+  // =========================================================
+  // KATEGORI (tetap, sesuai aturan bisnis & web)
+  //  - Terkelola : hanya Organik & Anorganik
+  //  - Diserahkan: hanya Residu
+  // Turunan (jenis) tetap diambil dinamis dari master.
+  // =========================================================
+  static const List<Map<String, String>> kategoriTerkelola = [
+    {"id": "Organik", "nama": "Organik"},
+    {"id": "Anorganik", "nama": "Anorganik"},
+  ];
+  static const List<Map<String, String>> kategoriDiserahkan = [
+    {"id": "Residu", "nama": "Residu"},
   ];
 
-  final List<Map<String, dynamic>> listKategori = [
-    {"id": "Organik",    "nama": "Organik"},
-    {"id": "Anorganik",  "nama": "Anorganik"},
-    {"id": "Residu",     "nama": "Residu"},
-  ];
-
-  final Map<String, List<Map<String, dynamic>>> listJenisByKategori = {
-    "Organik":   [
-      {"id": 1, "nama": "Sisa Makanan"},
-      {"id": 2, "nama": "Daun/Ranting"},
-    ],
-    "Anorganik": [
-      {"id": 3, "nama": "Plastik"},
-      {"id": 4, "nama": "Kertas"},
-      {"id": 5, "nama": "Logam"},
-      {"id": 6, "nama": "Kayu"},
-    ],
-    "Residu":    [
-      {"id": 7, "nama": "Residu"},
-    ],
-  };
-
-  final List<Map<String, dynamic>> listTujuan = [
-    {"id": 3, "nama": "TPA Banjar Bakula"},
-    {"id": 4, "nama": "Tempat Pembuangan Akhir"},
-  ];
+  // =========================================================
+  // DATA MASTER (diambil dinamis dari API /master-data)
+  // =========================================================
+  List<Map<String, dynamic>> lokasiList = [];
+  List<Map<String, dynamic>> jenisAll   = []; // id_jenis, nama_jenis, kategori_jenis
+  List<Map<String, dynamic>> tujuanList = [];
+  bool isLoadingMaster = true;
+  String? masterError;
 
   // =========================
   // STATE FORM TERKELOLA
   // =========================
-  final TextEditingController beratTerkelolaC  = TextEditingController();
-  final TextEditingController alasanTerkelolaC = TextEditingController();
-  DateTime tglTerkelola                        = DateTime.now();
+  final TextEditingController beratTerkelolaC = TextEditingController();
+  DateTime tglTerkelola = DateTime.now();
   int? selectedLokasiTerkelola;
   String? selectedKategoriTerkelola;
   int? selectedJenisTerkelola;
   File? fotoTerkelola;
-  bool isLoadingTerkelola                      = false;
+  bool isLoadingTerkelola = false;
 
   // =========================
   // STATE FORM DISERAHKAN
   // =========================
-  final TextEditingController beratDiserahkanC  = TextEditingController();
-  final TextEditingController alasanDiserahkanC = TextEditingController();
-  DateTime tglDiserahkan                        = DateTime.now();
+  final TextEditingController beratDiserahkanC = TextEditingController();
+  DateTime tglDiserahkan = DateTime.now();
   int? selectedLokasiDiserahkan;
   String? selectedKategoriDiserahkan;
   int? selectedJenisDiserahkan;
   int? selectedTujuan;
   File? fotoDiserahkan;
-  bool isLoadingDiserahkan                      = false;
+  bool isLoadingDiserahkan = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    fetchMasterData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     beratTerkelolaC.dispose();
-    alasanTerkelolaC.dispose();
     beratDiserahkanC.dispose();
-    alasanDiserahkanC.dispose();
     super.dispose();
+  }
+
+  // =========================================================
+  // AMBIL DATA MASTER DARI API (/master-data)
+  // Endpoint ini satu level dengan sampah-terkelola, jadi URL-nya
+  // diturunkan dari ApiEndpoints.sampahTerkelola agar tidak perlu
+  // konstanta baru. (Boleh diganti ke ApiEndpoints.masterData.)
+  // =========================================================
+  String get _masterDataUrl => ApiEndpoints.sampahTerkelola
+      .replaceFirst(RegExp(r'/sampah-terkelola/?$'), '/master-data');
+
+  int? _asInt(dynamic v) => v is int ? v : int.tryParse('$v');
+
+  // Tujuan dianggap aktif jika status = 1/true
+  bool _isActive(dynamic s) => s == true || '$s' == '1';
+
+  List<Map<String, dynamic>> _toListMap(dynamic raw) {
+    if (raw is List) {
+      return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
+  Future<void> fetchMasterData() async {
+    setState(() {
+      isLoadingMaster = true;
+      masterError = null;
+    });
+
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      final response = await http.get(
+        Uri.parse(_masterDataUrl),
+        headers: {
+          'Accept': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        final data = body['data'] ?? {};
+        setState(() {
+          lokasiList = _toListMap(data['lokasi_asal']);
+          jenisAll   = _toListMap(data['jenis']);
+          tujuanList = _toListMap(data['tujuan_sampah']);
+          isLoadingMaster = false;
+        });
+      } else {
+        setState(() {
+          masterError = body['message']?.toString() ?? 'Gagal memuat data master';
+          isLoadingMaster = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        masterError = e.toString();
+        isLoadingMaster = false;
+      });
+    }
+  }
+
+  // Filter jenis berdasarkan kategori terpilih (case-insensitive)
+  List<Map<String, dynamic>> jenisByKategori(String? kategori) {
+    if (kategori == null) return [];
+    final k = kategori.toLowerCase();
+    return jenisAll
+        .where((e) => '${e['kategori_jenis'] ?? ''}'.toLowerCase() == k)
+        .toList();
   }
 
   // =========================
@@ -107,10 +160,10 @@ class _InputSampahPageState extends State<InputSampahPage>
   // =========================
   Future<void> pickDate({required bool isTerkelola}) async {
     final picked = await showDatePicker(
-      context:     context,
+      context: context,
       initialDate: isTerkelola ? tglTerkelola : tglDiserahkan,
-      firstDate:   DateTime(2020),
-      lastDate:    DateTime(2030),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -140,9 +193,10 @@ class _InputSampahPageState extends State<InputSampahPage>
   Future<void> pickFoto({required bool isTerkelola}) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-      source:    ImageSource.gallery,
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.rear,
       imageQuality: 70,
-      maxWidth:  1024,
+      maxWidth: 1024,
     );
 
     if (picked != null) {
@@ -161,7 +215,7 @@ class _InputSampahPageState extends State<InputSampahPage>
   // =========================
   Future<void> submitTerkelola() async {
     if (selectedLokasiTerkelola == null ||
-        selectedJenisTerkelola  == null ||
+        selectedJenisTerkelola == null ||
         beratTerkelolaC.text.trim().isEmpty) {
       Get.snackbar("Peringatan", "Lengkapi semua field yang wajib diisi",
           backgroundColor: Colors.orange, colorText: Colors.white);
@@ -172,8 +226,8 @@ class _InputSampahPageState extends State<InputSampahPage>
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token           = prefs.getString('token');
-      String? idUser          = prefs.getString('id_user') ?? '1';
+      String? token = prefs.getString('token');
+      String? idUser = prefs.getString('id_user') ?? '1';
 
       final request = http.MultipartRequest(
         'POST',
@@ -189,7 +243,6 @@ class _InputSampahPageState extends State<InputSampahPage>
       request.fields['jumlah_berat'] = beratTerkelolaC.text.trim();
       request.fields['tgl']          =
           DateFormat('yyyy-MM-dd').format(tglTerkelola);
-      request.fields['alasan_edit']  = alasanTerkelolaC.text.trim();
 
       if (fotoTerkelola != null) {
         request.files.add(await http.MultipartFile.fromPath(
@@ -200,14 +253,14 @@ class _InputSampahPageState extends State<InputSampahPage>
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      final data     = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
       if (response.statusCode == 201 && data['success'] == true) {
         Get.snackbar(
           "Berhasil",
           "Data sampah terkelola berhasil disimpan",
           backgroundColor: Colors.green,
-          colorText:        Colors.white,
+          colorText: Colors.white,
         );
         _resetFormTerkelola();
       } else {
@@ -227,8 +280,8 @@ class _InputSampahPageState extends State<InputSampahPage>
   // =========================
   Future<void> submitDiserahkan() async {
     if (selectedLokasiDiserahkan == null ||
-        selectedJenisDiserahkan  == null ||
-        selectedTujuan           == null ||
+        selectedJenisDiserahkan == null ||
+        selectedTujuan == null ||
         beratDiserahkanC.text.trim().isEmpty) {
       Get.snackbar("Peringatan", "Lengkapi semua field yang wajib diisi",
           backgroundColor: Colors.orange, colorText: Colors.white);
@@ -239,8 +292,8 @@ class _InputSampahPageState extends State<InputSampahPage>
 
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? token           = prefs.getString('token');
-      String? idUser          = prefs.getString('id_user') ?? '1';
+      String? token = prefs.getString('token');
+      String? idUser = prefs.getString('id_user') ?? '1';
 
       final request = http.MultipartRequest(
         'POST',
@@ -249,15 +302,14 @@ class _InputSampahPageState extends State<InputSampahPage>
 
       request.headers['Authorization'] = 'Bearer $token';
 
-      request.fields['_method']         = 'POST';
-      request.fields['id_user']         = idUser;
-      request.fields['id_lokasi']       = '$selectedLokasiDiserahkan';
-      request.fields['id_jenis']        = '$selectedJenisDiserahkan';
-      request.fields['id_tujuan']       = '$selectedTujuan';
-      request.fields['jumlah_berat']    = beratDiserahkanC.text.trim();
-      request.fields['tgl_diserahkan']  =
+      request.fields['_method']        = 'POST';
+      request.fields['id_user']        = idUser;
+      request.fields['id_lokasi']      = '$selectedLokasiDiserahkan';
+      request.fields['id_jenis']       = '$selectedJenisDiserahkan';
+      request.fields['id_tujuan']      = '$selectedTujuan';
+      request.fields['jumlah_berat']   = beratDiserahkanC.text.trim();
+      request.fields['tgl_diserahkan'] =
           DateFormat('yyyy-MM-dd').format(tglDiserahkan);
-      request.fields['alasan_edit']     = alasanDiserahkanC.text.trim();
 
       if (fotoDiserahkan != null) {
         request.files.add(await http.MultipartFile.fromPath(
@@ -268,14 +320,14 @@ class _InputSampahPageState extends State<InputSampahPage>
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      final data     = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
       if (response.statusCode == 201 && data['success'] == true) {
         Get.snackbar(
           "Berhasil",
           "Data sampah diserahkan berhasil disimpan",
           backgroundColor: Colors.green,
-          colorText:        Colors.white,
+          colorText: Colors.white,
         );
         _resetFormDiserahkan();
       } else {
@@ -301,7 +353,6 @@ class _InputSampahPageState extends State<InputSampahPage>
       fotoTerkelola             = null;
       tglTerkelola              = DateTime.now();
       beratTerkelolaC.clear();
-      alasanTerkelolaC.clear();
     });
   }
 
@@ -314,7 +365,6 @@ class _InputSampahPageState extends State<InputSampahPage>
       fotoDiserahkan             = null;
       tglDiserahkan              = DateTime.now();
       beratDiserahkanC.clear();
-      alasanDiserahkanC.clear();
     });
   }
 
@@ -329,49 +379,89 @@ class _InputSampahPageState extends State<InputSampahPage>
 
           // Header biru
           Container(
-            width:   double.infinity,
-            color:   const Color(0xFF1A3A6B),
+            width: double.infinity,
+            color: const Color(0xFF1A3A6B),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: const Text(
               "Input Data Sampah",
               style: TextStyle(
-                color:      Colors.white,
-                fontSize:   16,
+                color: Colors.white,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
 
-          // Tab bar
-          Container(
-            color: Colors.white,
-            child: TabBar(
-              controller:           _tabController,
-              labelColor:           const Color(0xFF1A3A6B),
-              unselectedLabelColor: Colors.grey,
-              indicatorColor:       const Color(0xFF1A3A6B),
-              labelStyle: const TextStyle(
-                fontSize:   12,
-                fontWeight: FontWeight.bold,
+          if (isLoadingMaster)
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFF1A3A6B)),
               ),
-              tabs: const [
-                Tab(text: "Sampah Terkelola"),
-                Tab(text: "Sampah Diserahkan"),
-              ],
+            )
+          else if (masterError != null)
+            Expanded(child: _buildErrorState())
+          else ...[
+            // Tab bar
+            Container(
+              color: Colors.white,
+              child: TabBar(
+                controller: _tabController,
+                labelColor: const Color(0xFF1A3A6B),
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: const Color(0xFF1A3A6B),
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                tabs: const [
+                  Tab(text: "Sampah Terkelola"),
+                  Tab(text: "Sampah Diserahkan"),
+                ],
+              ),
             ),
-          ),
 
-          // Konten
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildFormTerkelola(),
-                _buildFormDiserahkan(),
-              ],
+            // Konten
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildFormTerkelola(),
+                  _buildFormDiserahkan(),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(
+              "Gagal memuat data master.\n$masterError",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: fetchMasterData,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A3A6B),
+              ),
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              label: const Text("Coba Lagi",
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -380,6 +470,8 @@ class _InputSampahPageState extends State<InputSampahPage>
   // FORM TERKELOLA
   // =========================
   Widget _buildFormTerkelola() {
+    final jenisItems = jenisByKategori(selectedKategoriTerkelola);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -391,21 +483,22 @@ class _InputSampahPageState extends State<InputSampahPage>
           // Tanggal
           _buildLabel("Tanggal", required: true),
           _buildDateField(
-            date:       tglTerkelola,
-            onTap:      () => pickDate(isTerkelola: true),
+            date: tglTerkelola,
+            onTap: () => pickDate(isTerkelola: true),
           ),
 
           const SizedBox(height: 16),
 
-          // Sumber Sampah
+          // Lokasi Asal
           _buildLabel("Lokasi Asal", required: true),
           _buildDropdown<int>(
-            hint:     "-- Pilih Lokasi --",
-            value:    selectedLokasiTerkelola,
-            items:    listLokasi.map((e) {
+            hint: "-- Pilih Lokasi --",
+            value: selectedLokasiTerkelola,
+            items: lokasiList.map((e) {
               return DropdownMenuItem<int>(
-                value: e['id'],
-                child: Text(e['nama'], style: const TextStyle(fontSize: 14)),
+                value: _asInt(e['id_lokasi']),
+                child: Text('${e['nama_lokasi']}',
+                    style: const TextStyle(fontSize: 14)),
               );
             }).toList(),
             onChanged: (val) => setState(() => selectedLokasiTerkelola = val),
@@ -413,40 +506,38 @@ class _InputSampahPageState extends State<InputSampahPage>
 
           const SizedBox(height: 16),
 
-          // Kategori Jenis
+          // Kategori Jenis (tetap: Organik / Anorganik)
           _buildLabel("Kategori Jenis", required: true),
           _buildDropdown<String>(
-            hint:  "-- Pilih Kategori --",
+            hint: "-- Pilih Kategori --",
             value: selectedKategoriTerkelola,
-            items: listKategori.map((e) {
+            items: kategoriTerkelola.map((e) {
               return DropdownMenuItem<String>(
                 value: e['id'],
-                child: Text(e['nama'], style: const TextStyle(fontSize: 14)),
+                child: Text(e['nama']!, style: const TextStyle(fontSize: 14)),
               );
             }).toList(),
             onChanged: (val) => setState(() {
               selectedKategoriTerkelola = val;
-              selectedJenisTerkelola   = null;
+              selectedJenisTerkelola = null;
             }),
           ),
 
           const SizedBox(height: 16),
 
-          // Jenis Sampah
+          // Jenis Sampah (dinamis dari master, sesuai kategori)
           _buildLabel("Jenis Sampah", required: true),
           _buildDropdown<int>(
-            hint:     "-- Pilih Jenis --",
-            value:    selectedJenisTerkelola,
-            enabled:  selectedKategoriTerkelola != null,
-            items:    selectedKategoriTerkelola == null
-                ? []
-                : (listJenisByKategori[selectedKategoriTerkelola] ?? [])
-                    .map((e) => DropdownMenuItem<int>(
-                          value: e['id'],
-                          child: Text(e['nama'],
-                              style: const TextStyle(fontSize: 14)),
-                        ))
-                    .toList(),
+            hint: "-- Pilih Jenis --",
+            value: selectedJenisTerkelola,
+            enabled: selectedKategoriTerkelola != null,
+            items: jenisItems.map((e) {
+              return DropdownMenuItem<int>(
+                value: _asInt(e['id_jenis']),
+                child: Text('${e['nama_jenis']}',
+                    style: const TextStyle(fontSize: 14)),
+              );
+            }).toList(),
             onChanged: (val) => setState(() => selectedJenisTerkelola = val),
           ),
 
@@ -455,9 +546,9 @@ class _InputSampahPageState extends State<InputSampahPage>
           // Berat
           _buildLabel("Berat (Kg)", required: true),
           _buildTextField(
-            controller:  beratTerkelolaC,
-            hint:        "0.00",
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            controller: beratTerkelolaC,
+            hint: "0.00",
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
 
           const SizedBox(height: 16),
@@ -465,54 +556,17 @@ class _InputSampahPageState extends State<InputSampahPage>
           // Foto
           _buildLabel("Foto"),
           _buildFotoField(
-            foto:   fotoTerkelola,
-            onTap:  () => pickFoto(isTerkelola: true),
+            foto: fotoTerkelola,
+            onTap: () => pickFoto(isTerkelola: true),
             onRemove: () => setState(() => fotoTerkelola = null),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Alasan Edit
-          _buildLabel("Keterangan"),
-          _buildTextField(
-            controller: alasanTerkelolaC,
-            hint:       "Opsional",
-            maxLines:   3,
           ),
 
           const SizedBox(height: 24),
 
           // Tombol Simpan
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: isLoadingTerkelola ? null : submitTerkelola,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A3A6B),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: isLoadingTerkelola
-                  ? const SizedBox(
-                      width:  18,
-                      height: 18,
-                      child:  CircularProgressIndicator(
-                        color:       Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(Icons.save, color: Colors.white),
-              label: Text(
-                isLoadingTerkelola ? "Menyimpan..." : "Simpan",
-                style: const TextStyle(
-                  color:      Colors.white,
-                  fontSize:   15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+          _buildSubmitButton(
+            isLoading: isLoadingTerkelola,
+            onPressed: submitTerkelola,
           ),
 
           const SizedBox(height: 24),
@@ -525,6 +579,8 @@ class _InputSampahPageState extends State<InputSampahPage>
   // FORM DISERAHKAN
   // =========================
   Widget _buildFormDiserahkan() {
+    final jenisItems = jenisByKategori(selectedKategoriDiserahkan);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -536,21 +592,22 @@ class _InputSampahPageState extends State<InputSampahPage>
           // Tanggal
           _buildLabel("Tanggal", required: true),
           _buildDateField(
-            date:  tglDiserahkan,
+            date: tglDiserahkan,
             onTap: () => pickDate(isTerkelola: false),
           ),
 
           const SizedBox(height: 16),
 
-          // Sumber Sampah
+          // Lokasi Asal
           _buildLabel("Lokasi Asal", required: true),
           _buildDropdown<int>(
-            hint:  "-- Pilih Lokasi --",
+            hint: "-- Pilih Lokasi --",
             value: selectedLokasiDiserahkan,
-            items: listLokasi.map((e) {
+            items: lokasiList.map((e) {
               return DropdownMenuItem<int>(
-                value: e['id'],
-                child: Text(e['nama'], style: const TextStyle(fontSize: 14)),
+                value: _asInt(e['id_lokasi']),
+                child: Text('${e['nama_lokasi']}',
+                    style: const TextStyle(fontSize: 14)),
               );
             }).toList(),
             onChanged: (val) =>
@@ -559,55 +616,54 @@ class _InputSampahPageState extends State<InputSampahPage>
 
           const SizedBox(height: 16),
 
-          // Kategori Jenis
+          // Kategori Jenis (dikunci: hanya Residu)
           _buildLabel("Kategori Jenis", required: true),
           _buildDropdown<String>(
-            hint:  "-- Pilih Kategori --",
+            hint: "-- Pilih Kategori --",
             value: selectedKategoriDiserahkan,
-            items: listKategori.map((e) {
+            items: kategoriDiserahkan.map((e) {
               return DropdownMenuItem<String>(
                 value: e['id'],
-                child: Text(e['nama'], style: const TextStyle(fontSize: 14)),
+                child: Text(e['nama']!, style: const TextStyle(fontSize: 14)),
               );
             }).toList(),
             onChanged: (val) => setState(() {
               selectedKategoriDiserahkan = val;
-              selectedJenisDiserahkan   = null;
+              selectedJenisDiserahkan = null;
             }),
           ),
 
           const SizedBox(height: 16),
 
-          // Jenis Sampah
+          // Jenis Sampah (dinamis dari master, kategori Residu)
           _buildLabel("Jenis Sampah", required: true),
           _buildDropdown<int>(
-            hint:    "-- Pilih Jenis --",
-            value:   selectedJenisDiserahkan,
+            hint: "-- Pilih Jenis --",
+            value: selectedJenisDiserahkan,
             enabled: selectedKategoriDiserahkan != null,
-            items:   selectedKategoriDiserahkan == null
-                ? []
-                : (listJenisByKategori[selectedKategoriDiserahkan] ?? [])
-                    .map((e) => DropdownMenuItem<int>(
-                          value: e['id'],
-                          child: Text(e['nama'],
-                              style: const TextStyle(fontSize: 14)),
-                        ))
-                    .toList(),
+            items: jenisItems.map((e) {
+              return DropdownMenuItem<int>(
+                value: _asInt(e['id_jenis']),
+                child: Text('${e['nama_jenis']}',
+                    style: const TextStyle(fontSize: 14)),
+              );
+            }).toList(),
             onChanged: (val) =>
                 setState(() => selectedJenisDiserahkan = val),
           ),
 
           const SizedBox(height: 16),
 
-          // Tujuan Diserahkan
+          // Tujuan Diserahkan (dinamis dari master)
           _buildLabel("Tujuan Diserahkan", required: true),
           _buildDropdown<int>(
-            hint:  "-- Pilih Tujuan --",
+            hint: "-- Pilih Tujuan --",
             value: selectedTujuan,
-            items: listTujuan.map((e) {
+            items: tujuanList.where((e) => _isActive(e['status'])).map((e) {
               return DropdownMenuItem<int>(
-                value: e['id'],
-                child: Text(e['nama'], style: const TextStyle(fontSize: 14)),
+                value: _asInt(e['id_tujuan']),
+                child: Text('${e['nama_tujuan']}',
+                    style: const TextStyle(fontSize: 14)),
               );
             }).toList(),
             onChanged: (val) => setState(() => selectedTujuan = val),
@@ -618,9 +674,9 @@ class _InputSampahPageState extends State<InputSampahPage>
           // Berat
           _buildLabel("Berat (Kg)", required: true),
           _buildTextField(
-            controller:   beratDiserahkanC,
-            hint:         "0.00",
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            controller: beratDiserahkanC,
+            hint: "0.00",
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
 
           const SizedBox(height: 16),
@@ -628,54 +684,17 @@ class _InputSampahPageState extends State<InputSampahPage>
           // Foto
           _buildLabel("Foto"),
           _buildFotoField(
-            foto:     fotoDiserahkan,
-            onTap:    () => pickFoto(isTerkelola: false),
+            foto: fotoDiserahkan,
+            onTap: () => pickFoto(isTerkelola: false),
             onRemove: () => setState(() => fotoDiserahkan = null),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Alasan Edit
-          _buildLabel("Keterangan"),
-          _buildTextField(
-            controller: alasanDiserahkanC,
-            hint:       "Opsional",
-            maxLines:   3,
           ),
 
           const SizedBox(height: 24),
 
           // Tombol Simpan
-          SizedBox(
-            width:  double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: isLoadingDiserahkan ? null : submitDiserahkan,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A3A6B),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: isLoadingDiserahkan
-                  ? const SizedBox(
-                      width:  18,
-                      height: 18,
-                      child:  CircularProgressIndicator(
-                        color:       Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(Icons.save, color: Colors.white),
-              label: Text(
-                isLoadingDiserahkan ? "Menyimpan..." : "Simpan",
-                style: const TextStyle(
-                  color:      Colors.white,
-                  fontSize:   15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+          _buildSubmitButton(
+            isLoading: isLoadingDiserahkan,
+            onPressed: submitDiserahkan,
           ),
 
           const SizedBox(height: 24),
@@ -687,6 +706,43 @@ class _InputSampahPageState extends State<InputSampahPage>
   // =========================
   // SHARED WIDGETS
   // =========================
+  Widget _buildSubmitButton({
+    required bool isLoading,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF1A3A6B),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        icon: isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Icon(Icons.save, color: Colors.white),
+        label: Text(
+          isLoading ? "Menyimpan..." : "Simpan",
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLabel(String text, {bool required = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -695,7 +751,7 @@ class _InputSampahPageState extends State<InputSampahPage>
           Text(
             text,
             style: const TextStyle(
-              fontSize:   14,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -716,12 +772,12 @@ class _InputSampahPageState extends State<InputSampahPage>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width:   double.infinity,
+        width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          border:       Border.all(color: Colors.grey.shade400),
+          border: Border.all(color: Colors.grey.shade400),
           borderRadius: BorderRadius.circular(8),
-          color:        Colors.white,
+          color: Colors.white,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -746,7 +802,7 @@ class _InputSampahPageState extends State<InputSampahPage>
     bool enabled = true,
   }) {
     return Container(
-      width:   double.infinity,
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         border: Border.all(
@@ -757,12 +813,13 @@ class _InputSampahPageState extends State<InputSampahPage>
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
-          value:    value,
-          hint:     Text(hint, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+          value: value,
+          hint: Text(hint,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
           isExpanded: true,
-          items:    items,
+          items: items,
           onChanged: enabled ? onChanged : null,
-          style:    const TextStyle(fontSize: 14, color: Colors.black),
+          style: const TextStyle(fontSize: 14, color: Colors.black),
         ),
       ),
     );
@@ -772,27 +829,27 @@ class _InputSampahPageState extends State<InputSampahPage>
     required TextEditingController controller,
     required String hint,
     TextInputType keyboardType = TextInputType.text,
-    int maxLines               = 1,
+    int maxLines = 1,
   }) {
     return TextField(
-      controller:  controller,
+      controller: controller,
       keyboardType: keyboardType,
-      maxLines:    maxLines,
+      maxLines: maxLines,
       style: const TextStyle(fontSize: 14),
       decoration: InputDecoration(
-        hintText:        hint,
-        hintStyle:       TextStyle(color: Colors.grey.shade500),
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade500),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
-          vertical:   12,
+          vertical: 12,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide(color: Colors.grey.shade400),
+          borderSide: BorderSide(color: Colors.grey.shade400),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:   BorderSide(color: Colors.grey.shade400),
+          borderSide: BorderSide(color: Colors.grey.shade400),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -815,26 +872,24 @@ class _InputSampahPageState extends State<InputSampahPage>
         GestureDetector(
           onTap: onTap,
           child: Container(
-            width:   double.infinity,
+            width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
-              border:       Border.all(color: Colors.grey.shade400),
+              border: Border.all(color: Colors.grey.shade400),
               borderRadius: BorderRadius.circular(8),
-              color:        Colors.white,
+              color: Colors.white,
             ),
             child: Row(
               children: [
-                const Icon(Icons.attach_file,
+                const Icon(Icons.camera_alt,
                     size: 18, color: Color(0xFF1A3A6B)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    foto != null
-                        ? foto.path.split('/').last
-                        : "Choose file",
+                    foto != null ? foto.path.split('/').last : "Ambil Foto (Kamera)",
                     style: TextStyle(
                       fontSize: 14,
-                      color:    foto != null
+                      color: foto != null
                           ? Colors.black
                           : Colors.grey.shade600,
                     ),
@@ -844,15 +899,12 @@ class _InputSampahPageState extends State<InputSampahPage>
                 if (foto != null)
                   GestureDetector(
                     onTap: onRemove,
-                    child: const Icon(Icons.close,
-                        size: 18, color: Colors.red),
+                    child: const Icon(Icons.close, size: 18, color: Colors.red),
                   ),
               ],
             ),
           ),
         ),
-
-        const SizedBox(height: 4),
 
         // Preview foto
         if (foto != null) ...[
@@ -861,9 +913,9 @@ class _InputSampahPageState extends State<InputSampahPage>
             borderRadius: BorderRadius.circular(8),
             child: Image.file(
               foto,
-              height:  150,
-              width:   double.infinity,
-              fit:     BoxFit.cover,
+              height: 150,
+              width: double.infinity,
+              fit: BoxFit.cover,
             ),
           ),
         ],

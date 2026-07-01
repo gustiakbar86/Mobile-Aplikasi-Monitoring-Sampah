@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/routes/app_pages.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi format tanggal lokal Indonesia (dipakai dashboard admin)
+  await initializeDateFormatting('id', null);
 
   // Cek session
   SharedPreferences prefs = await SharedPreferences.getInstance();
