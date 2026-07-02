@@ -403,6 +403,31 @@ class _RiwayatPageState extends State<RiwayatPage>
     }
   }
 
+  // =========================================================
+  // Ambil pesan error yang informatif dari response backend.
+  // Laravel mengirim 'message' untuk error umum (mis. 500), tapi untuk
+  // error validasi (422) hanya mengirim 'errors' (map field -> [pesan]).
+  // Tanpa ini, petugas hanya melihat "Terjadi kesalahan" tanpa tahu
+  // field mana yang bermasalah (mis. saat edit hasil delegasi admin,
+  // yang mana berat/lokasi/jenis masih kosong/0 dan wajib diisi ulang).
+  // =========================================================
+  String _extractErrorMessage(dynamic data) {
+    if (data is Map) {
+      if (data['message'] is String && (data['message'] as String).isNotEmpty) {
+        return data['message'];
+      }
+      if (data['errors'] is Map) {
+        final errors = data['errors'] as Map;
+        final messages = errors.values
+            .expand((v) => v is List ? v : [v])
+            .map((e) => '$e')
+            .toList();
+        if (messages.isNotEmpty) return messages.join('\n');
+      }
+    }
+    return "Terjadi kesalahan";
+  }
+
   Future<void> _handleUnauthorized() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -428,6 +453,54 @@ class _RiwayatPageState extends State<RiwayatPage>
   // =========================
   // PREVIEW FOTO
   // =========================
+  // =========================
+  // PILIH SUMBER FOTO (kamera / galeri) + batasi resolusi
+  // =========================
+  // Resolusi & kualitas dibatasi supaya file tetap di bawah limit backend
+  // (2MB) walau diambil langsung dari kamera beresolusi tinggi.
+  Future<File?> _pilihFoto() async {
+    final source = await Get.bottomSheet<ImageSource>(
+      SafeArea(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text("Ambil Foto Dari", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFF1A3A6B)),
+                title: const Text("Kamera"),
+                onTap: () => Get.back(result: ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xFF1A3A6B)),
+                title: const Text("Galeri"),
+                onTap: () => Get.back(result: ImageSource.gallery),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return null;
+
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 70,
+      maxWidth: 1600,   // turunkan resolusi agar file tetap ringan (< 2MB)
+      maxHeight: 1600,
+    );
+    return picked != null ? File(picked.path) : null;
+  }
+
   void _previewFoto(String urlFoto) {
     Get.dialog(
       Dialog(
@@ -469,7 +542,11 @@ class _RiwayatPageState extends State<RiwayatPage>
   // SHOW EDIT TERKELOLA
   // =========================
   void _showEditTerkelola(SampahTerkelola item) {
-    final beratC  = TextEditingController(text: "${item.beratKg}");
+    // Record hasil delegasi admin punya berat default 0 (belum diisi petugas).
+    // Kosongkan field-nya supaya jelas terlihat wajib diisi, bukan dianggap "sudah 0".
+    final beratC  = TextEditingController(
+      text: item.beratKg > 0 ? "${item.beratKg}" : "",
+    );
     final alasanC = TextEditingController(text: item.alasanEdit ?? '');
 
     // Kategori tetap (Organik / Anorganik), diresolusi dari data existing
@@ -594,9 +671,8 @@ class _RiwayatPageState extends State<RiwayatPage>
                     foto:        foto,
                     fotoLamaUrl: item.foto,
                     onPick: () async {
-                      final picked = await ImagePicker().pickImage(
-                        source: ImageSource.gallery, imageQuality: 70);
-                      if (picked != null) setStateSheet(() => foto = File(picked.path));
+                      final picked = await _pilihFoto();
+                      if (picked != null) setStateSheet(() => foto = picked);
                     },
                     onRemove:  () => setStateSheet(() => foto = null),
                     onPreview: item.foto != null ? () => _previewFoto(item.foto!) : null,
@@ -615,9 +691,15 @@ class _RiwayatPageState extends State<RiwayatPage>
                     width: double.infinity, height: 44,
                     child: ElevatedButton.icon(
                       onPressed: isLoading ? null : () async {
+                        final beratVal = double.tryParse(beratC.text.trim().replaceAll(',', '.'));
                         if (selectedLokasi == null || selectedJenis == null ||
-                            beratC.text.trim().isEmpty || alasanC.text.trim().isEmpty) {
+                            alasanC.text.trim().isEmpty) {
                           Get.snackbar("Peringatan", "Lengkapi semua field yang wajib (termasuk Alasan Edit)",
+                              backgroundColor: Colors.orange, colorText: Colors.white);
+                          return;
+                        }
+                        if (beratVal == null || beratVal <= 0) {
+                          Get.snackbar("Peringatan", "Berat wajib diisi dan harus lebih dari 0",
                               backgroundColor: Colors.orange, colorText: Colors.white);
                           return;
                         }
@@ -655,7 +737,7 @@ class _RiwayatPageState extends State<RiwayatPage>
                                 backgroundColor: Colors.green, colorText: Colors.white);
                             fetchSampahTerkelola(page: pageTerkelola);
                           } else {
-                            Get.snackbar("Gagal", data['message'] ?? "Terjadi kesalahan",
+                            Get.snackbar("Gagal", _extractErrorMessage(data),
                                 backgroundColor: Colors.red, colorText: Colors.white);
                           }
                         } catch (e) {
@@ -692,7 +774,11 @@ class _RiwayatPageState extends State<RiwayatPage>
   // SHOW EDIT DISERAHKAN
   // =========================
   void _showEditDiserahkan(SampahDiserahkan item) {
-    final beratC  = TextEditingController(text: "${item.beratKg}");
+    // Record hasil delegasi admin punya berat default 0 (belum diisi petugas).
+    // Kosongkan field-nya supaya jelas terlihat wajib diisi, bukan dianggap "sudah 0".
+    final beratC  = TextEditingController(
+      text: item.beratKg > 0 ? "${item.beratKg}" : "",
+    );
     final alasanC = TextEditingController(text: item.alasanEdit ?? '');
 
     // Kategori dikunci ke Residu
@@ -845,9 +931,8 @@ class _RiwayatPageState extends State<RiwayatPage>
                     foto:        foto,
                     fotoLamaUrl: item.foto,
                     onPick: () async {
-                      final picked = await ImagePicker().pickImage(
-                        source: ImageSource.gallery, imageQuality: 70);
-                      if (picked != null) setStateSheet(() => foto = File(picked.path));
+                      final picked = await _pilihFoto();
+                      if (picked != null) setStateSheet(() => foto = picked);
                     },
                     onRemove:  () => setStateSheet(() => foto = null),
                     onPreview: item.foto != null ? () => _previewFoto(item.foto!) : null,
@@ -866,10 +951,15 @@ class _RiwayatPageState extends State<RiwayatPage>
                     width: double.infinity, height: 44,
                     child: ElevatedButton.icon(
                       onPressed: isLoading ? null : () async {
+                        final beratVal = double.tryParse(beratC.text.trim().replaceAll(',', '.'));
                         if (selectedLokasi == null || selectedJenis == null ||
-                            selectedTujuan == null || beratC.text.trim().isEmpty ||
-                            alasanC.text.trim().isEmpty) {
+                            selectedTujuan == null || alasanC.text.trim().isEmpty) {
                           Get.snackbar("Peringatan", "Lengkapi semua field yang wajib (termasuk Alasan Edit)",
+                              backgroundColor: Colors.orange, colorText: Colors.white);
+                          return;
+                        }
+                        if (beratVal == null || beratVal <= 0) {
+                          Get.snackbar("Peringatan", "Berat wajib diisi dan harus lebih dari 0",
                               backgroundColor: Colors.orange, colorText: Colors.white);
                           return;
                         }
@@ -908,7 +998,7 @@ class _RiwayatPageState extends State<RiwayatPage>
                                 backgroundColor: Colors.green, colorText: Colors.white);
                             fetchSampahDiserahkan(page: pageDiserahkan);
                           } else {
-                            Get.snackbar("Gagal", data['message'] ?? "Terjadi kesalahan",
+                            Get.snackbar("Gagal", _extractErrorMessage(data),
                                 backgroundColor: Colors.red, colorText: Colors.white);
                           }
                         } catch (e) {

@@ -41,6 +41,7 @@ dependencies:
   http: ^1.2.0                 # <-- TAMBAHKAN INI (Untuk tembak API Laravel)
   shared_preferences: ^2.2.3   # <-- TAMBAHKAN INI (Untuk simpan Token Login)
   fl_chart: ^1.1.0
+  url_launcher: ^6.3.0    # <-- Untuk Google Maps
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,7 @@ import 'dashboard_page_admin.dart';
 import 'kelola_petugas_page.dart';
 import 'data_sampah_page.dart';
 import 'kelola_master_page.dart';
+import 'laporan_page.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -23,7 +24,7 @@ class _AdminShellState extends State<AdminShell> {
       const KelolaPetugasPage(),
       const DataSampahPage(),
       const KelolaMasterPage(),
-      const _ComingSoon(title: "Laporan", icon: Icons.folder),
+      const LaporanPage(),
     ];
 
     return Scaffold(
@@ -45,39 +46,6 @@ class _AdminShellState extends State<AdminShell> {
           BottomNavigationBarItem(icon: Icon(Icons.storage), label: "Master"),
           BottomNavigationBarItem(icon: Icon(Icons.folder), label: "Laporan"),
         ],
-      ),
-    );
-  }
-}
-
-class _ComingSoon extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  const _ComingSoon({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF2F4F7),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A3A6B),
-        foregroundColor: Colors.white,
-        title: Text(title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            const Text("Halaman ini masih dalam pengembangan",
-                style: TextStyle(color: Colors.grey, fontSize: 12)),
-          ],
-        ),
       ),
     );
   }
