@@ -16,8 +16,10 @@ void main() async {
   String? token = prefs.getString('token');
   String? role = prefs.getString('login_as');
 
-  // Tentukan halaman awal berdasarkan token + role
-  String initial = '/login';
+  // Tentukan halaman awal:
+  // - Belum ada token -> landing (pintu masuk: login / laporan pengunjung)
+  // - Sudah ada token  -> langsung ke home/admin sesuai role
+  String initial = '/landing';
   if (token != null) {
     initial = (role == 'petugas') ? '/home' : '/admin';
   }

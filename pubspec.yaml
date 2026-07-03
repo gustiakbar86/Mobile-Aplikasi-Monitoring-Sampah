@@ -42,6 +42,8 @@ dependencies:
   shared_preferences: ^2.2.3   # <-- TAMBAHKAN INI (Untuk simpan Token Login)
   fl_chart: ^1.1.0
   url_launcher: ^6.3.0    # <-- Untuk Google Maps
+  flutter_inappwebview: ^6.1.5   # WebView dengan dukungan permission kamera & lokasi
+  permission_handler: ^11.3.1    # Minta izin native kamera/lokasi sebelum WebView memakainya
 
 dev_dependencies:
   flutter_test:

@@ -405,8 +405,13 @@ class _LaporanPageState extends State<LaporanPage> {
                       );
                       setSheet(() => loading = false);
                       if (berhasil) {
-                        Get.back();
+                        Get.back(); // tutup bottom sheet dulu
                         fetchLaporan(page: currentPage);
+                        // Beri jeda singkat agar sheet selesai menutup,
+                        // baru tampilkan alert sukses. Tanpa jeda ini,
+                        // alert bisa ikut tertutup oleh animasi sheet.
+                        await Future.delayed(const Duration(milliseconds: 250));
+                        _alertBerhasilDelegasi();
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -447,8 +452,11 @@ class _LaporanPageState extends State<LaporanPage> {
       );
       final r = jsonDecode(res.body);
       if ((res.statusCode == 200) && r['success'] == true) {
-        Get.snackbar("Berhasil", r['message'] ?? "Laporan didelegasikan",
-            backgroundColor: Colors.green, colorText: Colors.white);
+        // Alert sukses TIDAK ditampilkan di sini, melainkan setelah
+        // bottom sheet ditutup (lihat _alertBerhasilDelegasi). Bila
+        // ditampilkan di sini, snackbar akan ikut tertutup oleh
+        // Get.back() yang menutup sheet, sehingga admin tidak
+        // pernah melihat notifikasinya.
         return true;
       } else {
         Get.snackbar("Gagal", r['message'] ?? "Gagal mendelegasikan",
@@ -459,6 +467,48 @@ class _LaporanPageState extends State<LaporanPage> {
       Get.snackbar("Error", e.toString(), backgroundColor: Colors.red, colorText: Colors.white);
       return false;
     }
+  }
+
+  /// Dialog sukses (gaya SweetAlert) yang ditampilkan SETELAH bottom
+  /// sheet delegasi tertutup, agar tidak ikut hilang bersama sheet.
+  void _alertBerhasilDelegasi() {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.green, width: 3),
+            ),
+            child: const Icon(Icons.check, color: Colors.green, size: 36),
+          ),
+          const SizedBox(height: 16),
+          const Text("Berhasil!",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text(
+            "Laporan berhasil didelegasikan.\nPetugas akan menerima tugas di menu Riwayat Inputan.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54),
+          ),
+        ]),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Get.back(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: brand, foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+              ),
+              child: const Text("OK"),
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
   }
 
   // =========================

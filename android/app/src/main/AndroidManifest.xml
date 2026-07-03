@@ -5,6 +5,10 @@
 
     <uses-permission android:name="android.permission.CAMERA"/>
 
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="P-Waste"
         android:name="${applicationName}"
@@ -30,6 +34,20 @@
             </intent-filter>
 
         </activity>
+
+        <!-- FileProvider untuk flutter_inappwebview: dibutuhkan agar opsi
+             "Kamera" muncul & berfungsi saat halaman web membuka
+             <input type="file">. Harus sejajar dengan <activity>,
+             BUKAN di dalamnya. -->
+        <provider
+            android:name="com.pichillilorenzo.flutter_inappwebview_android.InAppWebViewFileProvider"
+            android:authorities="${applicationId}.flutter_inappwebview_android.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
 
         <meta-data
             android:name="flutterEmbedding"
