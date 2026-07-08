@@ -373,67 +373,71 @@ class _InputSampahPageState extends State<InputSampahPage>
   // =========================
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
+    // 1. Hapus SafeArea, langsung gunakan Column
+    return Column(
+      children: [
+        // Header biru
+        Container(
+          width: double.infinity,
+          color: const Color(0xFF1A3A6B),
+          // 2. Sesuaikan padding agar memperhitungkan tinggi status bar
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 12, // 👈 Padding atas dinamis
+            bottom: 12,
+            left: 16,
+            right: 16,
+          ),
+          child: const Text(
+            "Input Data Sampah",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
 
-          // Header biru
+        if (isLoadingMaster)
+          const Expanded(
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF1A3A6B)),
+            ),
+          )
+        else if (masterError != null)
+          Expanded(child: _buildErrorState())
+        else ...[
+          // Tab bar
           Container(
-            width: double.infinity,
-            color: const Color(0xFF1A3A6B),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: const Text(
-              "Input Data Sampah",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
+            color: Colors.white,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: const Color(0xFF1A3A6B),
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: const Color(0xFF1A3A6B),
+              labelStyle: const TextStyle(
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
+              tabs: const [
+                Tab(text: "Sampah Terkelola"),
+                Tab(text: "Sampah Diserahkan"),
+              ],
             ),
           ),
 
-          if (isLoadingMaster)
-            const Expanded(
-              child: Center(
-                child: CircularProgressIndicator(color: Color(0xFF1A3A6B)),
-              ),
-            )
-          else if (masterError != null)
-            Expanded(child: _buildErrorState())
-          else ...[
-            // Tab bar
-            Container(
-              color: Colors.white,
-              child: TabBar(
-                controller: _tabController,
-                labelColor: const Color(0xFF1A3A6B),
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: const Color(0xFF1A3A6B),
-                labelStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                tabs: const [
-                  Tab(text: "Sampah Terkelola"),
-                  Tab(text: "Sampah Diserahkan"),
-                ],
-              ),
+          // Konten
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildFormTerkelola(),
+                _buildFormDiserahkan(),
+              ],
             ),
-
-            // Konten
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildFormTerkelola(),
-                  _buildFormDiserahkan(),
-                ],
-              ),
-            ),
-          ],
+          ),
         ],
-      ),
-    );
+      ],
+    ); // 3. Pastikan penutupnya cukup menggunakan titik koma di sini (karena SafeArea dihapus)
   }
 
   Widget _buildErrorState() {

@@ -52,19 +52,14 @@ class WebviewView extends GetView<WebviewPageController> {
                   mediaPlaybackRequiresUserGesture: false,
                   allowsInlineMediaPlayback: true,
                   geolocationEnabled: true,
-                  //useOnGeolocationPermissionsShowPrompt: true,
                   useOnDownloadStart: true,
                   javaScriptEnabled: true,
                   domStorageEnabled: true,
-                  // Penanda agar web pengunjung tahu halaman dibuka dari dalam
-                  // aplikasi (WebView). Web akan memakai jalur kamera live
-                  // (getUserMedia) alih-alih <input type="file"> yang di WebView
-                  // malah membuka file manager.
-                  userAgent:
-                      "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 PWasteApp/1.0",
-                  useHybridComposition: true,
-                  allowFileAccess: true,
+                  // Wajib true agar window.open()/target="_blank" di halaman
+                  // web (tombol "Buka Google Maps") terdeteksi lewat
+                  // onCreateWindow, bukan langsung diabaikan WebView.
+                  supportMultipleWindows: true,
+                  javaScriptCanOpenWindowsAutomatically: true,
                 ),
                 onWebViewCreated: controller.onWebViewCreated,
                 onLoadStart: (c, url) => controller.onLoadStart(url?.toString()),
@@ -73,6 +68,14 @@ class WebviewView extends GetView<WebviewPageController> {
                 onPermissionRequest: controller.onPermissionRequest,
                 onGeolocationPermissionsShowPrompt:
                     controller.onGeolocationPermissionsShowPrompt,
+                // Dipanggil saat halaman web coba buka tab/window baru
+                // (window.open(...) atau <a target="_blank">), termasuk
+                // tombol "Buka Google Maps". Kita lempar URL-nya ke app
+                // Google Maps / browser eksternal lewat url_launcher.
+                onCreateWindow: controller.onCreateWindow,
+                // Jaga-jaga untuk link yang navigasi langsung (bukan window
+                // baru) tapi mengarah ke maps.google.com / geo: scheme.
+                shouldOverrideUrlLoading: controller.shouldOverrideUrlLoading,
                 onReceivedError: (c, request, error) {
                   // Bisa ditampilkan halaman error kustom di sini bila perlu.
                 },

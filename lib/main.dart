@@ -4,9 +4,12 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/routes/app_pages.dart';
+import 'app/services/delegasi_notif_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await DelegasiNotifService.instance.init();
 
   // Inisialisasi format tanggal lokal Indonesia (dipakai dashboard admin)
   await initializeDateFormatting('id', null);

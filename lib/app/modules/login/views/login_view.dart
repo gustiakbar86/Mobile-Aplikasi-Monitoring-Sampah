@@ -66,7 +66,7 @@ class LoginView extends GetView<LoginController> {
                 controller: controller.emailC,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  labelText: 'Email / Username',
+                  labelText: 'Email',
                   prefixIcon: const Icon(
                     Icons.person,
                     color: Colors.blue,

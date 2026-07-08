@@ -44,6 +44,11 @@ dependencies:
   url_launcher: ^6.3.0    # <-- Untuk Google Maps
   flutter_inappwebview: ^6.1.5   # WebView dengan dukungan permission kamera & lokasi
   permission_handler: ^11.3.1    # Minta izin native kamera/lokasi sebelum WebView memakainya
+  file_picker: ^8.1.6    # memilih dokumen PDF/DOC/DOCX/XLS/XLSX dari perangkat
+  dio: ^5.7.0
+  open_filex: ^4.5.0
+  path_provider: ^2.1.4
+  flutter_local_notifications: ^17.2.3
 
 dev_dependencies:
   flutter_test:

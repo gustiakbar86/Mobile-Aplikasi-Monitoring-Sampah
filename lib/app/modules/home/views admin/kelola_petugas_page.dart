@@ -187,7 +187,7 @@ class _KelolaPetugasPageState extends State<KelolaPetugasPage> {
     }
   }
 
-  // Dibuat async: selalu memuat ulang daftar instansi terbaru sebelum form dibuka,
+    // Dibuat async: selalu memuat ulang daftar instansi terbaru sebelum form dibuka,
   // agar instansi yang baru ditambahkan di menu master ikut tampil di dropdown.
   Future<void> _formPetugas({Map<String, dynamic>? data}) async {
     await fetchInstansi();
@@ -209,87 +209,95 @@ class _KelolaPetugasPageState extends State<KelolaPetugasPage> {
       StatefulBuilder(
         builder: (context, setSheet) {
           return Container(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            // 1. Batasi tinggi maksimal agar tidak menutupi seluruh layar / status bar
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Text(isEdit ? "Edit Petugas" : "Tambah Petugas",
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: brand)),
+            child: SafeArea(
+              // 2. SafeArea menjaga isi form tidak menabrak status bar/notch
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
+                child: Padding(
+                  // 3. Pindahkan viewInsets.bottom ke sini agar area scroll view tetap luas
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
-                  const SizedBox(height: 16),
-                  _field("Email", emailC, hint: "email@example.com",
-                      keyboard: TextInputType.emailAddress),
-                  _field("Nama Lengkap", namaC, hint: "Nama lengkap petugas"),
-                  const Text("Instansi",
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  DropdownButtonFormField<int>(
-                    value: instansiId,
-                    isExpanded: true,
-                    decoration: _dec("-- Pilih Instansi --"),
-                    items: instansiList
-                        .map((e) => DropdownMenuItem<int>(
-                              value: e['id_instansi'] as int,
-                              child: Text(e['nama_instansi']),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setSheet(() => instansiId = v),
-                  ),
-                  const SizedBox(height: 12),
-                  _field("Password", passC,
-                      hint: isEdit
-                          ? "Kosongkan jika tidak ingin mengubah"
-                          : "Minimal 6 karakter",
-                      obscure: true),
-                  _field("Konfirmasi Password", pass2C,
-                      hint: "Ulangi password", obscure: true),
-                  const SizedBox(height: 16),
-                  Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => Get.back(),
-                          icon: const Icon(Icons.arrow_back, size: 16),
-                          label: const Text("Kembali"),
-                        ),
+                      Center(
+                        child: Text(isEdit ? "Edit Petugas" : "Tambah Petugas",
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: brand)),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _simpan(
-                            isEdit: isEdit,
-                            id: data?['id'],
-                            email: emailC.text.trim(),
-                            nama: namaC.text.trim(),
-                            instansiId: instansiId,
-                            pass: passC.text,
-                            pass2: pass2C.text,
+                      const SizedBox(height: 16),
+                      _field("Email", emailC, hint: "email@example.com",
+                          keyboard: TextInputType.emailAddress),
+                      _field("Nama Lengkap", namaC, hint: "Nama lengkap petugas"),
+                      const Text("Instansi",
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      DropdownButtonFormField<int>(
+                        value: instansiId,
+                        isExpanded: true,
+                        decoration: _dec("-- Pilih Instansi --"),
+                        items: instansiList
+                            .map((e) => DropdownMenuItem<int>(
+                                  value: e['id_instansi'] as int,
+                                  child: Text(e['nama_instansi']),
+                                ))
+                            .toList(),
+                        onChanged: (v) => setSheet(() => instansiId = v),
+                      ),
+                      const SizedBox(height: 12),
+                      _field("Password", passC,
+                          hint: isEdit
+                              ? "Kosongkan jika tidak ingin mengubah"
+                              : "Minimal 6 karakter",
+                          obscure: true),
+                      _field("Konfirmasi Password", pass2C,
+                          hint: "Ulangi password", obscure: true),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => Get.back(),
+                              icon: const Icon(Icons.arrow_back, size: 16),
+                              label: const Text("Kembali"),
+                            ),
                           ),
-                          icon: const Icon(Icons.save, size: 16),
-                          label: const Text("Simpan"),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: brand,
-                              foregroundColor: Colors.white),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _simpan(
+                                isEdit: isEdit,
+                                id: data?['id'],
+                                email: emailC.text.trim(),
+                                nama: namaC.text.trim(),
+                                instansiId: instansiId,
+                                pass: passC.text,
+                                pass2: pass2C.text,
+                              ),
+                              icon: const Icon(Icons.save, size: 16),
+                              label: const Text("Simpan"),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: brand,
+                                  foregroundColor: Colors.white),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           );
@@ -297,7 +305,7 @@ class _KelolaPetugasPageState extends State<KelolaPetugasPage> {
       ),
     );
   }
-
+  
   Future<void> _simpan({
     required bool isEdit,
     int? id,

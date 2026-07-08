@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/utils/api_endpoints.dart';
+import '../../../services/delegasi_notif_service.dart';
 
 class LoginController extends GetxController {
 
@@ -40,11 +41,15 @@ class LoginController extends GetxController {
         await prefs.setString('login_as', role);
         await prefs.setString('name', userData['data']['user']['name']);
         await prefs.setString('id_user', userData['data']['user']['id'].toString());
+        // Pastikan penulisan token benar-benar ter-commit sebelum pindah
+        // halaman, agar dashboard tidak membaca token kosong/lama (cegah 401 palsu).
+        await prefs.reload();
 
         Get.snackbar("Berhasil", "Login Berhasil");
 
         // Arahkan sesuai role
         if (role == 'petugas') {
+           await DelegasiNotifService.instance.start();   // <-- TAMBAH
           Get.offAllNamed('/home');
         } else if (role == 'admin') {
           Get.offAllNamed('/admin');
@@ -72,10 +77,11 @@ class LoginController extends GetxController {
   }
 
   Future<void> logout() async {
+    DelegasiNotifService.instance.stop(); // ← TAMBAHKAN INI (baris pertama)
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     Get.snackbar("Berhasil", "Anda telah logout");
-    Get.offAllNamed('/login');
+    Get.offAllNamed('/landing');
   }
 
   @override

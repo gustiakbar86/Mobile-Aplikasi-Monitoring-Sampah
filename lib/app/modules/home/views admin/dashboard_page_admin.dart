@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../services/delegasi_notif_service.dart';
 
 import '../../../../app/utils/api_endpoints.dart';
 
@@ -66,8 +67,8 @@ class _DashboardPageAdminState extends State<DashboardPageAdmin> {
 
   final NumberFormat fmt = NumberFormat('#,##0.00', 'en_US');
   final List<String> namaBulan = const [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
 
   @override
@@ -98,10 +99,14 @@ class _DashboardPageAdminState extends State<DashboardPageAdmin> {
   }
 
   Future<void> logout() async {
+    DelegasiNotifService.instance.stop(); // ← TAMBAHKAN INI
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove('token');
+    await prefs.remove('id_user');
+    await prefs.remove('name');
+    await prefs.remove('login_as');
+    Get.offAllNamed('/landing');
     Get.snackbar("Berhasil", "Anda telah logout");
-    Get.offAllNamed('/login');
   }
 
   double _toDouble(dynamic v) =>
@@ -168,6 +173,7 @@ class _DashboardPageAdminState extends State<DashboardPageAdmin> {
       final body = jsonDecode(res.body);
       final List<dynamic> items = body['data'] ?? [];
       for (final it in items) {
+        if (it['id_lokasi'] == null || it['id_jenis'] == null) continue; //coba
         rows.add(_Row(
           berat: _toDouble(it['jumlah_berat']),
           kategori:
@@ -183,22 +189,41 @@ class _DashboardPageAdminState extends State<DashboardPageAdmin> {
     return rows;
   }
 
-  Future<void> fetchData() async {
+  Future<void> fetchData({bool isRetry = false}) async {
     setState(() {
       isLoading = true;
       errorMsg = null;
     });
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.reload(); // pastikan baca token terbaru (mis. sesudah login ulang)
       final token = prefs.getString('token') ?? '';
+
+      // Jika token kosong padahal belum retry, tunggu sebentar lalu coba lagi
+      // (menghindari race saat baru login: token belum sempat tersimpan).
+      if (token.isEmpty && !isRetry) {
+        await Future.delayed(const Duration(milliseconds: 400));
+        return fetchData(isRetry: true);
+      }
+
       terkelolaRows =
           await _fetchAll(ApiEndpoints.sampahTerkelola, token, false);
       diserahkanRows =
           await _fetchAll(ApiEndpoints.sampahDiserahkan, token, true);
       setState(() => isLoading = false);
     } on _Unauthorized {
+      // Jangan langsung akhiri sesi pada 401 pertama saat baru login.
+      // Coba sekali lagi dengan token yang dibaca ulang; bila tetap 401,
+      // barulah anggap sesi benar-benar berakhir.
+      if (!isRetry) {
+        await Future.delayed(const Duration(milliseconds: 400));
+        return fetchData(isRetry: true);
+      }
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await prefs.remove('token');
+      await prefs.remove('id_user');
+      await prefs.remove('name');
+      await prefs.remove('login_as');
       Get.offAllNamed('/login');
       Get.snackbar("Sesi Berakhir", "Silakan login kembali.");
     } catch (e) {

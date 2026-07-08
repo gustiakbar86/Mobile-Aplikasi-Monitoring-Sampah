@@ -135,12 +135,20 @@ class _LaporanPageState extends State<LaporanPage> {
   bool _belumDidelegasikan(String status) =>
       status != 'Didelegasikan' && status != 'Selesai';
 
-  Color _statusColor(String status) {
-    if (status.contains('Selesai')) return Colors.green;
-    if (status.contains('Delegasi') && status != 'Menunggu Delegasi') {
-      return brand; // Didelegasikan
+    Color _statusColor(String status) {
+    // Ubah string status ke huruf kecil semua sebelum dicocokkan
+    final s = status.toLowerCase().trim();
+    
+    if (s.contains('selesai')) {
+      return Colors.green;
     }
-    return Colors.grey.shade600; // Menunggu ...
+    
+    if (s.contains('didelegasikan')) {
+      return const Color(0xFFFFB300); // Kuning/Amber sesuai gambar Anda
+    }
+    
+    // Status lainnya (seperti "menunggu delegasi") tetap abu-abu
+    return Colors.grey.shade600; 
   }
 
   void _previewFoto(String url) {

@@ -18,4 +18,8 @@ class ApiEndpoints {
   static const String masterJenis = "$baseUrl/master/jenis";
   static const String masterTujuan = "$baseUrl/master/tujuan-sampah";
   static const String masterInstansi = "$baseUrl/master/instansi"; // data master instansi
+
+  // Dokumen (Berkas) & Export Laporan
+  static const String dokumen = "$baseUrl/dokumen"; // CRUD dokumen
+  static const String exportLaporan = "$baseUrl/export-laporan"; // unduh laporan excel
 }

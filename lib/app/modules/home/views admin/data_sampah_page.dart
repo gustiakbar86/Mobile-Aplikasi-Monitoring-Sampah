@@ -27,6 +27,7 @@ class SampahTerkelola {
   final String? alasanEdit;
   final String? foto;
   final String user;
+  final bool belumLengkap; // true = delegasi belum dikerjakan petugas
 
   SampahTerkelola({
     required this.id,
@@ -40,13 +41,27 @@ class SampahTerkelola {
     this.alasanEdit,
     this.foto,
     this.user = '-',
+    this.belumLengkap = false,
   });
 
   factory SampahTerkelola.fromJson(Map<String, dynamic> json) {
+    final idLok = json['id_lokasi'] is int
+        ? json['id_lokasi']
+        : int.tryParse('${json['id_lokasi']}');
+    final idJns = json['id_jenis'] is int
+        ? json['id_jenis']
+        : int.tryParse('${json['id_jenis']}');
+    final adaDelegasi = json['id_laporan_pengunjung'] != null;
+
+    // Utamakan flag dari backend (belum_lengkap); jika tidak ada, hitung sendiri.
+    final bool belumLengkap = json.containsKey('belum_lengkap')
+        ? (json['belum_lengkap'] == true || json['belum_lengkap'] == 1)
+        : (adaDelegasi && (idLok == null || idJns == null));
+
     return SampahTerkelola(
       id:            json['id'],
-      idLokasi:      json['id_lokasi'] is int ? json['id_lokasi'] : int.tryParse(json['id_lokasi'].toString()) ?? 0,
-      idJenis:       json['id_jenis']  is int ? json['id_jenis']  : int.tryParse(json['id_jenis'].toString())  ?? 0,
+      idLokasi:      idLok ?? 0,
+      idJenis:       idJns ?? 0,
       tanggal:       json['tgl'] ?? '-',
       lokasiAsal:    json['lokasi_asal']?['nama_lokasi'] ?? '-',
       jenisSampah:   "${json['jenis']?['kategori_jenis'] ?? '-'} - ${json['jenis']?['nama_jenis'] ?? '-'}",
@@ -55,6 +70,7 @@ class SampahTerkelola {
       alasanEdit:    json['alasan_edit'],
       foto:          json['foto_url'] ?? json['foto_kelola'],
       user:          "${json['user']?['instansi']?['nama_instansi'] ?? '-'} - ${json['user']?['name'] ?? '-'}",
+      belumLengkap:  belumLengkap,
     );
   }
 }
@@ -76,6 +92,7 @@ class SampahDiserahkan {
   final String? alasanEdit;
   final String? foto;
   final String user;
+  final bool belumLengkap; // true = delegasi belum dikerjakan petugas
 
   SampahDiserahkan({
     required this.id,
@@ -91,6 +108,7 @@ class SampahDiserahkan {
     this.alasanEdit,
     this.foto,
     this.user = '-',
+    this.belumLengkap = false,
   });
 
 // 🌟 Perbaikan parsing tanggal dengan format fleksibel hanya di sampah diserakhan
@@ -114,11 +132,26 @@ class SampahDiserahkan {
       }
     }
 
+    final idLok = json['id_lokasi'] is int
+        ? json['id_lokasi']
+        : int.tryParse('${json['id_lokasi']}');
+    final idJns = json['id_jenis'] is int
+        ? json['id_jenis']
+        : int.tryParse('${json['id_jenis']}');
+    final idTuj = json['id_tujuan'] is int
+        ? json['id_tujuan']
+        : int.tryParse('${json['id_tujuan']}');
+    final adaDelegasi = json['id_laporan_pengunjung'] != null;
+
+    final bool belumLengkap = json.containsKey('belum_lengkap')
+        ? (json['belum_lengkap'] == true || json['belum_lengkap'] == 1)
+        : (adaDelegasi && (idLok == null || idJns == null || idTuj == null));
+
     return SampahDiserahkan(
       id:            json['id'],
-      idLokasi:      json['id_lokasi'] is int ? json['id_lokasi'] : int.tryParse(json['id_lokasi'].toString()) ?? 0,
-      idJenis:       json['id_jenis']  is int ? json['id_jenis']  : int.tryParse(json['id_jenis'].toString())  ?? 0,
-      idTujuan:      json['id_tujuan'] is int ? json['id_tujuan'] : int.tryParse(json['id_tujuan'].toString()) ?? 0,
+      idLokasi:      idLok ?? 0,
+      idJenis:       idJns ?? 0,
+      idTujuan:      idTuj ?? 0,
       tanggal:       formattedDate, // ✅ Akan tampil sebagai dd-MM-yyyy
       lokasiAsal:    json['lokasi_asal']?['nama_lokasi'] ?? '-',
       jenisSampah:   "${json['jenis']?['kategori_jenis'] ?? '-'} - ${json['jenis']?['nama_jenis'] ?? '-'}",
@@ -128,6 +161,7 @@ class SampahDiserahkan {
       alasanEdit:    json['alasan_edit'],
       foto:          json['foto_url'],
       user:          "${json['user']?['instansi']?['nama_instansi'] ?? '-'} - ${json['user']?['name'] ?? '-'}",
+      belumLengkap:  belumLengkap,
     );
   }
 }
@@ -443,6 +477,99 @@ class _DataSampahPageState extends State<DataSampahPage>
   }
 
   // =========================
+  // PERINGATAN: DELEGASI BELUM DIKERJAKAN PETUGAS
+  // =========================
+  void _peringatanDelegasi() {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64, height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.orange, width: 3),
+            ),
+            child: const Icon(Icons.info_outline, color: Colors.orange, size: 36),
+          ),
+          const SizedBox(height: 16),
+          const Text("Tidak Dapat Diedit",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text(
+            "Data ini berasal dari delegasi dan belum dikerjakan oleh petugas. "
+            "Admin tidak dapat mengedit data delegasi yang belum dilengkapi petugas.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+        ]),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Get.back(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A3A6B),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+              ),
+              child: const Text("Mengerti"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================
+  // PILIH SUMBER FOTO (KAMERA / GALERI)
+  // =========================
+  Future<File?> _pilihSumberFoto() async {
+    final sumber = await Get.bottomSheet<ImageSource>(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4, margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text("Pilih Sumber Foto",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A3A6B))),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF1A3A6B)),
+              title: const Text("Kamera"),
+              onTap: () => Get.back(result: ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFF1A3A6B)),
+              title: const Text("Galeri"),
+              onTap: () => Get.back(result: ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (sumber == null) return null;
+    final picked =
+        await ImagePicker().pickImage(source: sumber, imageQuality: 70);
+    if (picked == null) return null;
+    return File(picked.path);
+  }
+
+  // =========================
   // PREVIEW FOTO
   // =========================
   void _previewFoto(String urlFoto) {
@@ -485,7 +612,13 @@ class _DataSampahPageState extends State<DataSampahPage>
   // =========================
   // SHOW EDIT TERKELOLA
   // =========================
-  void _showEditTerkelola(SampahTerkelola item) {
+    void _showEditTerkelola(SampahTerkelola item) {
+    // GUARD: baris delegasi yang belum dikerjakan petugas tidak boleh diedit admin.
+    if (item.belumLengkap) {
+      _peringatanDelegasi();
+      return;
+    }
+
     final beratC  = TextEditingController(text: "${item.beratKg}");
     final alasanC = TextEditingController(text: item.alasanEdit ?? '');
 
@@ -505,209 +638,222 @@ class _DataSampahPageState extends State<DataSampahPage>
     bool isLoading           = false;
 
     Get.bottomSheet(
+      isScrollControlled: true, // Pastikan isScrollControlled bernilai true
       StatefulBuilder(
         builder: (context, setStateSheet) {
           final jenisItems = _jenisByKategori(selectedKategori);
           return Container(
-            padding: EdgeInsets.only(
-              left: 16, right: 16, top: 16,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            // 1. Batasi tinggi maksimal agar tidak menabrak status bar
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
             decoration: const BoxDecoration(
               color:        Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: SafeArea(
+              // 2. Bungkus dengan SafeArea untuk melindungi notches/sistem UI
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
+                child: Padding(
+                  // 3. Pindahkan viewInsets.bottom ke dalam ScrollView agar area scroll luas
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Edit Sampah Terkelola",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A3A6B))),
-                      IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Edit Sampah Terkelola",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A3A6B))),
+                          IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+                        ],
+                      ),
+                      const Divider(),
+
+                      // Tanggal
+                      _editLabel("Tanggal", required: true),
+                      GestureDetector(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context, initialDate: tgl,
+                            firstDate: DateTime(2020), lastDate: DateTime(2030),
+                            builder: (ctx, child) => Theme(
+                              data: Theme.of(ctx).copyWith(
+                                colorScheme: const ColorScheme.light(primary: Color(0xFF1A3A6B))),
+                              child: child!,
+                            ),
+                          );
+                          if (picked != null) setStateSheet(() => tgl = picked);
+                        },
+                        child: _editDateField(tgl),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Lokasi
+                      _editLabel("Lokasi Asal", required: true),
+                      _editDropdown<int>(
+                        hint:  "-- Pilih Lokasi --",
+                        value: selectedLokasi,
+                        items: lokasiMaster.map((e) => DropdownMenuItem<int>(
+                          value: _asInt(e['id_lokasi']),
+                          child: Text('${e['nama_lokasi']}', style: const TextStyle(fontSize: 13)),
+                        )).toList(),
+                        onChanged: (val) => setStateSheet(() => selectedLokasi = val),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Kategori
+                      _editLabel("Kategori Jenis", required: true),
+                      _editDropdown<String>(
+                        hint:  "-- Pilih Kategori --",
+                        value: selectedKategori,
+                        items: kategoriTerkelola.map((e) => DropdownMenuItem<String>(
+                          value: e['id'],
+                          child: Text(e['nama']!, style: const TextStyle(fontSize: 13)),
+                        )).toList(),
+                        onChanged: (val) => setStateSheet(() {
+                          selectedKategori = val;
+                          selectedJenis    = null;
+                        }),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Jenis
+                      _editLabel("Jenis Sampah", required: true),
+                      _editDropdown<int>(
+                        hint:    "-- Pilih Jenis --",
+                        value:   selectedJenis,
+                        enabled: selectedKategori != null,
+                        items:   jenisItems.map((e) => DropdownMenuItem<int>(
+                              value: _asInt(e['id_jenis']),
+                              child: Text('${e['nama_jenis']}', style: const TextStyle(fontSize: 13)),
+                            )).toList(),
+                        onChanged: (val) => setStateSheet(() => selectedJenis = val),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Berat
+                      _editLabel("Berat (Kg)", required: true),
+                      _editTextField(controller: beratC, hint: "0.00", isNumber: true),
+
+                      const SizedBox(height: 12),
+
+                      // Foto
+                      _editLabel("Foto"),
+                      _editFotoField(
+                        foto:        foto,
+                        fotoLamaUrl: item.foto,
+                        onPick: () async {
+                          final picked = await _pilihSumberFoto();
+                          if (picked != null) setStateSheet(() => foto = picked);
+                        },
+                        onRemove:  () => setStateSheet(() => foto = null),
+                        onPreview: item.foto != null ? () => _previewFoto(item.foto!) : null,
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Keterangan
+                      _editLabel("Keterangan"),
+                      _editTextField(controller: alasanC, hint: "Opsional", maxLines: 10),
+
+                      const SizedBox(height: 16),
+
+                      // Tombol Simpan
+                      SizedBox(
+                        width: double.infinity, height: 44,
+                        child: ElevatedButton.icon(
+                          onPressed: isLoading ? null : () async {
+                            if (selectedLokasi == null || selectedJenis == null || beratC.text.trim().isEmpty) {
+                              Get.snackbar("Peringatan", "Lengkapi semua field yang wajib",
+                                  backgroundColor: Colors.orange, colorText: Colors.white);
+                              return;
+                            }
+                            setStateSheet(() => isLoading = true);
+                            try {
+                              SharedPreferences prefs = await SharedPreferences.getInstance();
+                              String? token  = prefs.getString('token');
+                              String? idUser = prefs.getString('id_user') ?? '1';
+
+                              final request = http.MultipartRequest(
+                                'POST',
+                                Uri.parse("${ApiEndpoints.sampahTerkelola}/${item.id}"),
+                              );
+                              request.headers['Authorization'] = 'Bearer $token';
+                              request.fields['_method']        = 'PUT';
+                              request.fields['id_user']        = idUser;
+                              request.fields['id_lokasi']      = '$selectedLokasi';
+                              request.fields['id_jenis']       = '$selectedJenis';
+                              request.fields['jumlah_berat']   = beratC.text.trim();
+                              request.fields['tgl']            = DateFormat('yyyy-MM-dd').format(tgl);
+                              request.fields['alasan_edit']    = alasanC.text.trim();
+
+                              if (foto != null) {
+                                request.files.add(await http.MultipartFile.fromPath(
+                                  'foto_kelola', foto!.path));
+                              }
+
+                              final streamed = await request.send();
+                              final response = await http.Response.fromStream(streamed);
+                              final data     = jsonDecode(response.body);
+
+                              if (response.statusCode == 200 && data['success'] == true) {
+                                Get.back();
+                                Get.snackbar("Berhasil", "Data berhasil diperbarui",
+                                    backgroundColor: Colors.green, colorText: Colors.white);
+                                fetchSampahTerkelola();
+                              } else {
+                                Get.snackbar("Gagal", data['message'] ?? "Terjadi kesalahan",
+                                    backgroundColor: Colors.red, colorText: Colors.white);
+                              }
+                            } catch (e) {
+                              Get.snackbar("Error", e.toString(),
+                                  backgroundColor: Colors.red, colorText: Colors.white);
+                            } finally {
+                              setStateSheet(() => isLoading = false);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A3A6B),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: isLoading
+                              ? const SizedBox(width: 16, height: 16,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Icon(Icons.save, color: Colors.white, size: 18),
+                          label: Text(isLoading ? "Menyimpan..." : "Simpan Perubahan",
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                     ],
                   ),
-                  const Divider(),
-
-                  // Tanggal
-                  _editLabel("Tanggal", required: true),
-                  GestureDetector(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context, initialDate: tgl,
-                        firstDate: DateTime(2020), lastDate: DateTime(2030),
-                        builder: (ctx, child) => Theme(
-                          data: Theme.of(ctx).copyWith(
-                            colorScheme: const ColorScheme.light(primary: Color(0xFF1A3A6B))),
-                          child: child!,
-                        ),
-                      );
-                      if (picked != null) setStateSheet(() => tgl = picked);
-                    },
-                    child: _editDateField(tgl),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Lokasi
-                  _editLabel("Lokasi Asal", required: true),
-                  _editDropdown<int>(
-                    hint:  "-- Pilih Lokasi --",
-                    value: selectedLokasi,
-                    items: lokasiMaster.map((e) => DropdownMenuItem<int>(
-                      value: _asInt(e['id_lokasi']),
-                      child: Text('${e['nama_lokasi']}', style: const TextStyle(fontSize: 13)),
-                    )).toList(),
-                    onChanged: (val) => setStateSheet(() => selectedLokasi = val),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Kategori
-                  _editLabel("Kategori Jenis", required: true),
-                  _editDropdown<String>(
-                    hint:  "-- Pilih Kategori --",
-                    value: selectedKategori,
-                    items: kategoriTerkelola.map((e) => DropdownMenuItem<String>(
-                      value: e['id'],
-                      child: Text(e['nama']!, style: const TextStyle(fontSize: 13)),
-                    )).toList(),
-                    onChanged: (val) => setStateSheet(() {
-                      selectedKategori = val;
-                      selectedJenis    = null;
-                    }),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Jenis
-                  _editLabel("Jenis Sampah", required: true),
-                  _editDropdown<int>(
-                    hint:    "-- Pilih Jenis --",
-                    value:   selectedJenis,
-                    enabled: selectedKategori != null,
-                    items:   jenisItems.map((e) => DropdownMenuItem<int>(
-                          value: _asInt(e['id_jenis']),
-                          child: Text('${e['nama_jenis']}', style: const TextStyle(fontSize: 13)),
-                        )).toList(),
-                    onChanged: (val) => setStateSheet(() => selectedJenis = val),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Berat
-                  _editLabel("Berat (Kg)", required: true),
-                  _editTextField(controller: beratC, hint: "0.00", isNumber: true),
-
-                  const SizedBox(height: 12),
-
-                  // Foto
-                  _editLabel("Foto"),
-                  _editFotoField(
-                    foto:        foto,
-                    fotoLamaUrl: item.foto,
-                    onPick: () async {
-                      final picked = await ImagePicker().pickImage(
-                        source: ImageSource.gallery, imageQuality: 70);
-                      if (picked != null) setStateSheet(() => foto = File(picked.path));
-                    },
-                    onRemove:  () => setStateSheet(() => foto = null),
-                    onPreview: item.foto != null ? () => _previewFoto(item.foto!) : null,
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Keterangan
-                  _editLabel("Keterangan"),
-                  _editTextField(controller: alasanC, hint: "Opsional", maxLines: 10),
-
-                  const SizedBox(height: 16),
-
-                  // Tombol Simpan
-                  SizedBox(
-                    width: double.infinity, height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: isLoading ? null : () async {
-                        if (selectedLokasi == null || selectedJenis == null || beratC.text.trim().isEmpty) {
-                          Get.snackbar("Peringatan", "Lengkapi semua field yang wajib",
-                              backgroundColor: Colors.orange, colorText: Colors.white);
-                          return;
-                        }
-                        setStateSheet(() => isLoading = true);
-                        try {
-                          SharedPreferences prefs = await SharedPreferences.getInstance();
-                          String? token  = prefs.getString('token');
-                          String? idUser = prefs.getString('id_user') ?? '1';
-
-                          final request = http.MultipartRequest(
-                            'POST',
-                            Uri.parse("${ApiEndpoints.sampahTerkelola}/${item.id}"),
-                          );
-                          request.headers['Authorization'] = 'Bearer $token';
-                          request.fields['_method']        = 'PUT';
-                          request.fields['id_user']        = idUser;
-                          request.fields['id_lokasi']      = '$selectedLokasi';
-                          request.fields['id_jenis']       = '$selectedJenis';
-                          request.fields['jumlah_berat']   = beratC.text.trim();
-                          request.fields['tgl']            = DateFormat('yyyy-MM-dd').format(tgl);
-                          request.fields['alasan_edit']    = alasanC.text.trim();
-
-                          if (foto != null) {
-                            request.files.add(await http.MultipartFile.fromPath(
-                              'foto_kelola', foto!.path));
-                          }
-
-                          final streamed = await request.send();
-                          final response = await http.Response.fromStream(streamed);
-                          final data     = jsonDecode(response.body);
-
-                          if (response.statusCode == 200 && data['success'] == true) {
-                            Get.back();
-                            Get.snackbar("Berhasil", "Data berhasil diperbarui",
-                                backgroundColor: Colors.green, colorText: Colors.white);
-                            fetchSampahTerkelola();
-                          } else {
-                            Get.snackbar("Gagal", data['message'] ?? "Terjadi kesalahan",
-                                backgroundColor: Colors.red, colorText: Colors.white);
-                          }
-                        } catch (e) {
-                          Get.snackbar("Error", e.toString(),
-                              backgroundColor: Colors.red, colorText: Colors.white);
-                        } finally {
-                          setStateSheet(() => isLoading = false);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3A6B),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: isLoading
-                          ? const SizedBox(width: 16, height: 16,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Icon(Icons.save, color: Colors.white, size: 18),
-                      label: Text(isLoading ? "Menyimpan..." : "Simpan Perubahan",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                ),
               ),
             ),
           );
         },
       ),
-      isScrollControlled: true,
     );
   }
-
   // =========================
   // SHOW EDIT DISERAHKAN
   // =========================
-  void _showEditDiserahkan(SampahDiserahkan item) {
+    void _showEditDiserahkan(SampahDiserahkan item) {
+    // GUARD: baris delegasi yang belum dikerjakan petugas tidak boleh diedit admin.
+    if (item.belumLengkap) {
+      _peringatanDelegasi();
+      return;
+    }
+
     final beratC  = TextEditingController(text: "${item.beratKg}");
     final alasanC = TextEditingController(text: item.alasanEdit ?? '');
 
@@ -741,218 +887,226 @@ class _DataSampahPageState extends State<DataSampahPage>
     bool isLoading           = false;
 
     Get.bottomSheet(
+      isScrollControlled: true, // Pastikan isScrollControlled bernilai true
       StatefulBuilder(
         builder: (context, setStateSheet) {
           final jenisItems = _jenisByKategori(selectedKategori);
           return Container(
-            padding: EdgeInsets.only(
-              left: 16, right: 16, top: 16,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            // 1. Batasi tinggi maksimal agar tidak menabrak status bar
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
             decoration: const BoxDecoration(
               color:        Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: SafeArea(
+              // 2. Bungkus dengan SafeArea
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
+                child: Padding(
+                  // 3. Pindahkan viewInsets.bottom ke dalam ScrollView agar area scroll luas
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Edit Sampah Diserahkan",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A3A6B))),
-                      IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Edit Sampah Diserahkan",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A3A6B))),
+                          IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+                        ],
+                      ),
+                      const Divider(),
+
+                      // Tanggal
+                      _editLabel("Tanggal", required: true),
+                      GestureDetector(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context, initialDate: tgl,
+                            firstDate: DateTime(2020), lastDate: DateTime(2030),
+                            builder: (ctx, child) => Theme(
+                              data: Theme.of(ctx).copyWith(
+                                colorScheme: const ColorScheme.light(primary: Color(0xFF1A3A6B))),
+                              child: child!,
+                            ),
+                          );
+                          if (picked != null) setStateSheet(() => tgl = picked);
+                        },
+                        child: _editDateField(tgl),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Lokasi
+                      _editLabel("Lokasi Asal", required: true),
+                      _editDropdown<int>(
+                        hint:  "-- Pilih Lokasi --",
+                        value: selectedLokasi,
+                        items: lokasiMaster.map((e) => DropdownMenuItem<int>(
+                          value: _asInt(e['id_lokasi']),
+                          child: Text('${e['nama_lokasi']}', style: const TextStyle(fontSize: 13)),
+                        )).toList(),
+                        onChanged: (val) => setStateSheet(() => selectedLokasi = val),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Kategori
+                      _editLabel("Kategori Jenis", required: true),
+                      _editDropdown<String>(
+                        hint:  "-- Pilih Kategori --",
+                        value: selectedKategori,
+                        items: kategoriDiserahkan.map((e) => DropdownMenuItem<String>(
+                          value: e['id'],
+                          child: Text(e['nama']!, style: const TextStyle(fontSize: 13)),
+                        )).toList(),
+                        onChanged: (val) => setStateSheet(() {
+                          selectedKategori = val;
+                          selectedJenis    = null;
+                        }),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Jenis
+                      _editLabel("Jenis Sampah", required: true),
+                      _editDropdown<int>(
+                        hint:    "-- Pilih Jenis --",
+                        value:   selectedJenis,
+                        enabled: selectedKategori != null,
+                        items:   jenisItems.map((e) => DropdownMenuItem<int>(
+                              value: _asInt(e['id_jenis']),
+                              child: Text('${e['nama_jenis']}', style: const TextStyle(fontSize: 13)),
+                            )).toList(),
+                        onChanged: (val) => setStateSheet(() => selectedJenis = val),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Tujuan
+                      _editLabel("Tujuan Diserahkan", required: true),
+                      _editDropdown<int>(
+                        hint:  "-- Pilih Tujuan --",
+                        value: selectedTujuan,
+                        items: tujuanItems.map((e) => DropdownMenuItem<int>(
+                          value: _asInt(e['id_tujuan']),
+                          child: Text('${e['nama_tujuan']}', style: const TextStyle(fontSize: 13)),
+                        )).toList(),
+                        onChanged: (val) => setStateSheet(() => selectedTujuan = val),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Berat
+                      _editLabel("Berat (Kg)", required: true),
+                      _editTextField(controller: beratC, hint: "0.00", isNumber: true),
+
+                      const SizedBox(height: 12),
+
+                      // Foto
+                      _editLabel("Foto"),
+                      _editFotoField(
+                        foto:        foto,
+                        fotoLamaUrl: item.foto,
+                        onPick: () async {
+                          final picked = await _pilihSumberFoto();
+                          if (picked != null) setStateSheet(() => foto = picked);
+                        },
+                        onRemove:  () => setStateSheet(() => foto = null),
+                        onPreview: item.foto != null ? () => _previewFoto(item.foto!) : null,
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Keterangan
+                      _editLabel("Keterangan"),
+                      _editTextField(controller: alasanC, hint: "Opsional", maxLines: 10),
+
+                      const SizedBox(height: 16),
+
+                      // Tombol Simpan
+                      SizedBox(
+                        width: double.infinity, height: 44,
+                        child: ElevatedButton.icon(
+                          onPressed: isLoading ? null : () async {
+                            if (selectedLokasi == null || selectedJenis == null ||
+                                selectedTujuan == null || beratC.text.trim().isEmpty) {
+                              Get.snackbar("Peringatan", "Lengkapi semua field yang wajib",
+                                  backgroundColor: Colors.orange, colorText: Colors.white);
+                              return;
+                            }
+                            setStateSheet(() => isLoading = true);
+                            try {
+                              SharedPreferences prefs = await SharedPreferences.getInstance();
+                              String? token  = prefs.getString('token');
+                              String? idUser = prefs.getString('id_user') ?? '1';
+
+                              final request = http.MultipartRequest(
+                                'POST',
+                                Uri.parse("${ApiEndpoints.sampahDiserahkan}/${item.id}"),
+                              );
+                              request.headers['Authorization'] = 'Bearer $token';
+                              request.fields['_method']        = 'PUT';
+                              request.fields['id_user']        = idUser;
+                              request.fields['id_lokasi']      = '$selectedLokasi';
+                              request.fields['id_jenis']       = '$selectedJenis';
+                              request.fields['id_tujuan']      = '$selectedTujuan';
+                              request.fields['jumlah_berat']   = beratC.text.trim();
+                              request.fields['tgl_diserahkan'] = DateFormat('yyyy-MM-dd').format(tgl);
+                              request.fields['alasan_edit']    = alasanC.text.trim();
+
+                              if (foto != null) {
+                                request.files.add(await http.MultipartFile.fromPath(
+                                  'foto_diserahkan', foto!.path));
+                              }
+
+                              final streamed = await request.send();
+                              final response = await http.Response.fromStream(streamed);
+                              final data     = jsonDecode(response.body);
+
+                              if (response.statusCode == 200 && data['success'] == true) {
+                                Get.back();
+                                Get.snackbar("Berhasil", "Data berhasil diperbarui",
+                                    backgroundColor: Colors.green, colorText: Colors.white);
+                                fetchSampahDiserahkan(page: pageDiserahkan);
+                              } else {
+                                Get.snackbar("Gagal", data['message'] ?? "Terjadi kesalahan",
+                                    backgroundColor: Colors.red, colorText: Colors.white);
+                              }
+                            } catch (e) {
+                              Get.snackbar("Error", e.toString(),
+                                  backgroundColor: Colors.red, colorText: Colors.white);
+                            } finally {
+                              setStateSheet(() => isLoading = false);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A3A6B),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: isLoading
+                              ? const SizedBox(width: 16, height: 16,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Icon(Icons.save, color: Colors.white, size: 18),
+                          label: Text(isLoading ? "Menyimpan..." : "Simpan Perubahan",
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                     ],
                   ),
-                  const Divider(),
-
-                  // Tanggal
-                  _editLabel("Tanggal", required: true),
-                  GestureDetector(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context, initialDate: tgl,
-                        firstDate: DateTime(2020), lastDate: DateTime(2030),
-                        builder: (ctx, child) => Theme(
-                          data: Theme.of(ctx).copyWith(
-                            colorScheme: const ColorScheme.light(primary: Color(0xFF1A3A6B))),
-                          child: child!,
-                        ),
-                      );
-                      if (picked != null) setStateSheet(() => tgl = picked);
-                    },
-                    child: _editDateField(tgl),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Lokasi
-                  _editLabel("Lokasi Asal", required: true),
-                  _editDropdown<int>(
-                    hint:  "-- Pilih Lokasi --",
-                    value: selectedLokasi,
-                    items: lokasiMaster.map((e) => DropdownMenuItem<int>(
-                      value: _asInt(e['id_lokasi']),
-                      child: Text('${e['nama_lokasi']}', style: const TextStyle(fontSize: 13)),
-                    )).toList(),
-                    onChanged: (val) => setStateSheet(() => selectedLokasi = val),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Kategori
-                  _editLabel("Kategori Jenis", required: true),
-                  _editDropdown<String>(
-                    hint:  "-- Pilih Kategori --",
-                    value: selectedKategori,
-                    items: kategoriDiserahkan.map((e) => DropdownMenuItem<String>(
-                      value: e['id'],
-                      child: Text(e['nama']!, style: const TextStyle(fontSize: 13)),
-                    )).toList(),
-                    onChanged: (val) => setStateSheet(() {
-                      selectedKategori = val;
-                      selectedJenis    = null;
-                    }),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Jenis
-                  _editLabel("Jenis Sampah", required: true),
-                  _editDropdown<int>(
-                    hint:    "-- Pilih Jenis --",
-                    value:   selectedJenis,
-                    enabled: selectedKategori != null,
-                    items:   jenisItems.map((e) => DropdownMenuItem<int>(
-                          value: _asInt(e['id_jenis']),
-                          child: Text('${e['nama_jenis']}', style: const TextStyle(fontSize: 13)),
-                        )).toList(),
-                    onChanged: (val) => setStateSheet(() => selectedJenis = val),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Tujuan
-                  _editLabel("Tujuan Diserahkan", required: true),
-                  _editDropdown<int>(
-                    hint:  "-- Pilih Tujuan --",
-                    value: selectedTujuan,
-                    items: tujuanItems.map((e) => DropdownMenuItem<int>(
-                      value: _asInt(e['id_tujuan']),
-                      child: Text('${e['nama_tujuan']}', style: const TextStyle(fontSize: 13)),
-                    )).toList(),
-                    onChanged: (val) => setStateSheet(() => selectedTujuan = val),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Berat
-                  _editLabel("Berat (Kg)", required: true),
-                  _editTextField(controller: beratC, hint: "0.00", isNumber: true),
-
-                  const SizedBox(height: 12),
-
-                  // Foto
-                  _editLabel("Foto"),
-                  _editFotoField(
-                    foto:        foto,
-                    fotoLamaUrl: item.foto,
-                    onPick: () async {
-                      final picked = await ImagePicker().pickImage(
-                        source: ImageSource.gallery, imageQuality: 70);
-                      if (picked != null) setStateSheet(() => foto = File(picked.path));
-                    },
-                    onRemove:  () => setStateSheet(() => foto = null),
-                    onPreview: item.foto != null ? () => _previewFoto(item.foto!) : null,
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Keterangan
-                  _editLabel("Keterangan"),
-                  _editTextField(controller: alasanC, hint: "Opsional", maxLines: 10),
-
-                  const SizedBox(height: 16),
-
-                  // Tombol Simpan
-                  SizedBox(
-                    width: double.infinity, height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: isLoading ? null : () async {
-                        if (selectedLokasi == null || selectedJenis == null ||
-                            selectedTujuan == null || beratC.text.trim().isEmpty) {
-                          Get.snackbar("Peringatan", "Lengkapi semua field yang wajib",
-                              backgroundColor: Colors.orange, colorText: Colors.white);
-                          return;
-                        }
-                        setStateSheet(() => isLoading = true);
-                        try {
-                          SharedPreferences prefs = await SharedPreferences.getInstance();
-                          String? token  = prefs.getString('token');
-                          String? idUser = prefs.getString('id_user') ?? '1';
-
-                          final request = http.MultipartRequest(
-                            'POST',
-                            Uri.parse("${ApiEndpoints.sampahDiserahkan}/${item.id}"),
-                          );
-                          request.headers['Authorization'] = 'Bearer $token';
-                          request.fields['_method']        = 'PUT';
-                          request.fields['id_user']        = idUser;
-                          request.fields['id_lokasi']      = '$selectedLokasi';
-                          request.fields['id_jenis']       = '$selectedJenis';
-                          request.fields['id_tujuan']      = '$selectedTujuan';
-                          request.fields['jumlah_berat']   = beratC.text.trim();
-                          request.fields['tgl_diserahkan'] = DateFormat('yyyy-MM-dd').format(tgl);
-                          request.fields['alasan_edit']    = alasanC.text.trim();
-
-                          if (foto != null) {
-                            request.files.add(await http.MultipartFile.fromPath(
-                              'foto_diserahkan', foto!.path));
-                          }
-
-                          final streamed = await request.send();
-                          final response = await http.Response.fromStream(streamed);
-                          final data     = jsonDecode(response.body);
-
-                          if (response.statusCode == 200 && data['success'] == true) {
-                            Get.back();
-                            Get.snackbar("Berhasil", "Data berhasil diperbarui",
-                                backgroundColor: Colors.green, colorText: Colors.white);
-                            fetchSampahDiserahkan(page: pageDiserahkan);
-                          } else {
-                            Get.snackbar("Gagal", data['message'] ?? "Terjadi kesalahan",
-                                backgroundColor: Colors.red, colorText: Colors.white);
-                          }
-                        } catch (e) {
-                          Get.snackbar("Error", e.toString(),
-                              backgroundColor: Colors.red, colorText: Colors.white);
-                        } finally {
-                          setStateSheet(() => isLoading = false);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3A6B),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      icon: isLoading
-                          ? const SizedBox(width: 16, height: 16,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Icon(Icons.save, color: Colors.white, size: 18),
-                      label: Text(isLoading ? "Menyimpan..." : "Simpan Perubahan",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                ),
               ),
             ),
           );
         },
       ),
-      isScrollControlled: true,
     );
   }
 
@@ -1098,7 +1252,11 @@ class _DataSampahPageState extends State<DataSampahPage>
         SizedBox(width: 120, child: Text(item.jenisSampah, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
         SizedBox(width: 60,  child: Text("${item.beratKg}", style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
         SizedBox(width: 110, child: Text(item.alasanEdit ?? "-", style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
-        SizedBox(width: 60,  child: Center(child: _buildAksiButtons(onEdit: () => _showEditTerkelola(item), onHapus: () => _hapusTerkelola(item.id)))),
+        SizedBox(width: 60,  child: Center(child: _buildAksiButtons(
+          belumLengkap: item.belumLengkap,
+          onEdit:  () => _showEditTerkelola(item),
+          onHapus: () => _hapusTerkelola(item.id),
+        ))),
       ]),
     );
   }
@@ -1208,7 +1366,11 @@ class _DataSampahPageState extends State<DataSampahPage>
         SizedBox(width: 110, child: Text(item.tujuan, style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
         SizedBox(width: 60,  child: Text("${item.beratKg}", style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
         SizedBox(width: 100, child: Text(item.alasanEdit ?? "-", style: const TextStyle(fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis)),
-        SizedBox(width: 60,  child: Center(child: _buildAksiButtons(onEdit: () => _showEditDiserahkan(item), onHapus: () => _hapusDiserahkan(item.id)))),
+        SizedBox(width: 60,  child: Center(child: _buildAksiButtons(
+          belumLengkap: item.belumLengkap,
+          onEdit:  () => _showEditDiserahkan(item),
+          onHapus: () => _hapusDiserahkan(item.id),
+        ))),
       ]),
     );
   }
@@ -1228,8 +1390,36 @@ class _DataSampahPageState extends State<DataSampahPage>
     );
   }
 
-  // Tombol aksi admin: Edit + Hapus (disusun vertikal agar muat di kolom)
-  Widget _buildAksiButtons({required VoidCallback onEdit, required VoidCallback onHapus}) {
+  // Tombol aksi admin.
+  // - Baris normal/lengkap: Edit + Hapus.
+  // - Baris delegasi belum dikerjakan petugas (belumLengkap): tombol
+  //   "Menunggu" (kuning) yang saat ditekan menampilkan peringatan,
+  //   TANPA tombol Hapus (admin tidak boleh menyentuh delegasi belum jadi).
+  Widget _buildAksiButtons({
+    required VoidCallback onEdit,
+    required VoidCallback onHapus,
+    bool belumLengkap = false,
+  }) {
+    if (belumLengkap) {
+      return GestureDetector(
+        onTap: _peringatanDelegasi,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+              color: Colors.orange, borderRadius: BorderRadius.circular(4)),
+          child: const Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.hourglass_empty, size: 10, color: Colors.white),
+            SizedBox(width: 2),
+            Flexible(
+              child: Text("Menunggu Petugas",
+                  style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center),
+            ),
+          ]),
+        ),
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1343,21 +1533,6 @@ class _DataSampahPageState extends State<DataSampahPage>
     } catch (e) {
       Get.snackbar("Error", e.toString(), backgroundColor: Colors.red, colorText: Colors.white);
     }
-  }
-
-  Widget _buildAksiButton(VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(color: const Color(0xFFFFC107), borderRadius: BorderRadius.circular(4)),
-        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.edit, size: 10, color: Colors.white),
-          SizedBox(width: 2),
-          Text("Edit", style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
-        ]),
-      ),
-    );
   }
 
   Widget _buildSearchBar({
@@ -1527,11 +1702,11 @@ class _DataSampahPageState extends State<DataSampahPage>
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(8)),
           child: Row(children: [
-            const Icon(Icons.attach_file, size: 16, color: Color(0xFF1A3A6B)),
+            const Icon(Icons.add_a_photo, size: 16, color: Color(0xFF1A3A6B)),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                foto != null ? foto.path.split('/').last : "Pilih foto baru (opsional)",
+                foto != null ? foto.path.split('/').last : "Ambil dari kamera / galeri (opsional)",
                 style: TextStyle(fontSize: 13, color: foto != null ? Colors.black : Colors.grey),
                 overflow: TextOverflow.ellipsis,
               ),
