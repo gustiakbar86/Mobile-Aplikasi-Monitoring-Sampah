@@ -187,8 +187,6 @@ class _KelolaPetugasPageState extends State<KelolaPetugasPage> {
     }
   }
 
-    // Dibuat async: selalu memuat ulang daftar instansi terbaru sebelum form dibuka,
-  // agar instansi yang baru ditambahkan di menu master ikut tampil di dropdown.
   Future<void> _formPetugas({Map<String, dynamic>? data}) async {
     await fetchInstansi();
 
@@ -198,7 +196,7 @@ class _KelolaPetugasPageState extends State<KelolaPetugasPage> {
     final passC = TextEditingController();
     final pass2C = TextEditingController();
     int? instansiId = data?['id_instansi'];
-    // Cegah error dropdown bila instansi lama sudah tidak ada di daftar
+    // Cegah error dropdown
     if (instansiId != null &&
         !instansiList.any((e) => e['id_instansi'] == instansiId)) {
       instansiId = null;
@@ -209,7 +207,6 @@ class _KelolaPetugasPageState extends State<KelolaPetugasPage> {
       StatefulBuilder(
         builder: (context, setSheet) {
           return Container(
-            // 1. Batasi tinggi maksimal agar tidak menutupi seluruh layar / status bar
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
@@ -217,12 +214,10 @@ class _KelolaPetugasPageState extends State<KelolaPetugasPage> {
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
-            child: SafeArea(
-              // 2. SafeArea menjaga isi form tidak menabrak status bar/notch
+            child: SafeArea(        
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
-                child: Padding(
-                  // 3. Pindahkan viewInsets.bottom ke sini agar area scroll view tetap luas
+                child: Padding(                  
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
@@ -397,7 +392,7 @@ class _KelolaPetugasPageState extends State<KelolaPetugasPage> {
       ),
       body: Column(
         children: [
-          // Pencarian + Tambah
+          // Pencarian Tambah
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(

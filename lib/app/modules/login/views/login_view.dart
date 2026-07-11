@@ -19,9 +19,6 @@ class LoginView extends GetView<LoginController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // =========================
-              // LOGO
-              // =========================
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -44,10 +41,6 @@ class LoginView extends GetView<LoginController> {
               ),
 
               const SizedBox(height: 20),
-
-              // =========================
-              // TITLE
-              // =========================
               const Text(
                 "PT Pelindo Subregional Kalimantan",
                 textAlign: TextAlign.center,
@@ -58,10 +51,8 @@ class LoginView extends GetView<LoginController> {
               ),
 
               const SizedBox(height: 40),
-
-              // =========================
-              // EMAIL
-              // =========================
+      
+              // Email              
               TextField(
                 controller: controller.emailC,
                 keyboardType: TextInputType.emailAddress,
@@ -79,9 +70,7 @@ class LoginView extends GetView<LoginController> {
 
               const SizedBox(height: 20),
 
-              // =========================
-              // PASSWORD
-              // =========================
+              // Password
               TextField(
                 controller: controller.passwordC,
                 obscureText: true,
@@ -99,9 +88,8 @@ class LoginView extends GetView<LoginController> {
 
               const SizedBox(height: 30),
 
-              // =========================
-              // BUTTON LOGIN
-              // =========================
+              
+              // Button LOGIN
               SizedBox(
                 width: double.infinity,
                 height: 50,

@@ -7,11 +7,10 @@ class LandingView extends StatelessWidget {
   const LandingView({super.key});
 
   // ==== Palet biru muda ====
-  static const Color _biru = Color(0xFF039BE5); // tombol utama (light blue 600)
-  static const Color _biruMuda = Color(0xFF29B6F6); // aksen ikon (light blue 400)
-  static const Color _biruSoft = Color(0xFFE1F5FE); // latar chip ikon (light blue 50)
+  static const Color _biru = Color(0xFF039BE5); 
+  static const Color _biruMuda = Color(0xFF29B6F6); 
+  static const Color _biruSoft = Color(0xFFE1F5FE); 
 
-  // Sesuaikan dengan URL web pengunjung kamu.
   static const String _laporanPengunjungUrl =
       'https://gusti-edo.org/pengunjung-web-p-waste/';
 
@@ -25,8 +24,6 @@ class LandingView extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(flex: 2),
-
-              // ==== Dua logo sejajar: pwaste (kiri) & pelindo (kanan) ====
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -59,10 +56,6 @@ class LandingView extends StatelessWidget {
               ),
 
               const Spacer(flex: 2),
-
-              // ==== Dua kartu: kiri Login, kanan Laporan Pengunjung ====
-              // IntrinsicHeight + stretch: kedua kartu mengikuti tinggi
-              // kartu tertinggi (kanan yang labelnya 2 baris).
               IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -92,9 +85,7 @@ class LandingView extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              // ==== Tombol pill penuh: About Us ====
+              const SizedBox(height: 16),            
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -136,8 +127,6 @@ class LandingView extends StatelessWidget {
     );
   }
 
-  /// Kartu menu putih bergaya Krom: ikon di atas, label di bawah,
-  /// sudut membulat, border tipis, bayangan lembut.
   Widget _menuCard({
     required IconData icon,
     required String label,

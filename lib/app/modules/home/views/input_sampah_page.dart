@@ -21,13 +21,6 @@ class _InputSampahPageState extends State<InputSampahPage>
     with SingleTickerProviderStateMixin {
 
   late TabController _tabController;
-
-  // =========================================================
-  // KATEGORI (tetap, sesuai aturan bisnis & web)
-  //  - Terkelola : hanya Organik & Anorganik
-  //  - Diserahkan: hanya Residu
-  // Turunan (jenis) tetap diambil dinamis dari master.
-  // =========================================================
   static const List<Map<String, String>> kategoriTerkelola = [
     {"id": "Organik", "nama": "Organik"},
     {"id": "Anorganik", "nama": "Anorganik"},
@@ -36,18 +29,14 @@ class _InputSampahPageState extends State<InputSampahPage>
     {"id": "Residu", "nama": "Residu"},
   ];
 
-  // =========================================================
-  // DATA MASTER (diambil dinamis dari API /master-data)
-  // =========================================================
+  // DATA MASTER
   List<Map<String, dynamic>> lokasiList = [];
   List<Map<String, dynamic>> jenisAll   = []; // id_jenis, nama_jenis, kategori_jenis
   List<Map<String, dynamic>> tujuanList = [];
   bool isLoadingMaster = true;
   String? masterError;
 
-  // =========================
   // STATE FORM TERKELOLA
-  // =========================
   final TextEditingController beratTerkelolaC = TextEditingController();
   DateTime tglTerkelola = DateTime.now();
   int? selectedLokasiTerkelola;
@@ -56,9 +45,7 @@ class _InputSampahPageState extends State<InputSampahPage>
   File? fotoTerkelola;
   bool isLoadingTerkelola = false;
 
-  // =========================
   // STATE FORM DISERAHKAN
-  // =========================
   final TextEditingController beratDiserahkanC = TextEditingController();
   DateTime tglDiserahkan = DateTime.now();
   int? selectedLokasiDiserahkan;
@@ -83,18 +70,11 @@ class _InputSampahPageState extends State<InputSampahPage>
     super.dispose();
   }
 
-  // =========================================================
-  // AMBIL DATA MASTER DARI API (/master-data)
-  // Endpoint ini satu level dengan sampah-terkelola, jadi URL-nya
-  // diturunkan dari ApiEndpoints.sampahTerkelola agar tidak perlu
-  // konstanta baru. (Boleh diganti ke ApiEndpoints.masterData.)
-  // =========================================================
   String get _masterDataUrl => ApiEndpoints.sampahTerkelola
       .replaceFirst(RegExp(r'/sampah-terkelola/?$'), '/master-data');
 
   int? _asInt(dynamic v) => v is int ? v : int.tryParse('$v');
 
-  // Tujuan dianggap aktif jika status = 1/true
   bool _isActive(dynamic s) => s == true || '$s' == '1';
 
   List<Map<String, dynamic>> _toListMap(dynamic raw) {
@@ -146,7 +126,6 @@ class _InputSampahPageState extends State<InputSampahPage>
     }
   }
 
-  // Filter jenis berdasarkan kategori terpilih (case-insensitive)
   List<Map<String, dynamic>> jenisByKategori(String? kategori) {
     if (kategori == null) return [];
     final k = kategori.toLowerCase();
@@ -155,9 +134,7 @@ class _InputSampahPageState extends State<InputSampahPage>
         .toList();
   }
 
-  // =========================
   // PILIH TANGGAL
-  // =========================
   Future<void> pickDate({required bool isTerkelola}) async {
     final picked = await showDatePicker(
       context: context,
@@ -187,9 +164,7 @@ class _InputSampahPageState extends State<InputSampahPage>
     }
   }
 
-  // =========================
   // PILIH FOTO
-  // =========================
   Future<void> pickFoto({required bool isTerkelola}) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
@@ -210,9 +185,7 @@ class _InputSampahPageState extends State<InputSampahPage>
     }
   }
 
-  // =========================
   // SUBMIT TERKELOLA
-  // =========================
   Future<void> submitTerkelola() async {
     if (selectedLokasiTerkelola == null ||
         selectedJenisTerkelola == null ||
@@ -275,9 +248,7 @@ class _InputSampahPageState extends State<InputSampahPage>
     }
   }
 
-  // =========================
   // SUBMIT DISERAHKAN
-  // =========================
   Future<void> submitDiserahkan() async {
     if (selectedLokasiDiserahkan == null ||
         selectedJenisDiserahkan == null ||
@@ -342,9 +313,7 @@ class _InputSampahPageState extends State<InputSampahPage>
     }
   }
 
-  // =========================
   // RESET FORM
-  // =========================
   void _resetFormTerkelola() {
     setState(() {
       selectedLokasiTerkelola   = null;
@@ -368,21 +337,16 @@ class _InputSampahPageState extends State<InputSampahPage>
     });
   }
 
-  // =========================
   // BUILD
-  // =========================
   @override
   Widget build(BuildContext context) {
-    // 1. Hapus SafeArea, langsung gunakan Column
     return Column(
       children: [
-        // Header biru
         Container(
           width: double.infinity,
           color: const Color(0xFF1A3A6B),
-          // 2. Sesuaikan padding agar memperhitungkan tinggi status bar
           padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 12, // 👈 Padding atas dinamis
+            top: MediaQuery.of(context).padding.top + 12, 
             bottom: 12,
             left: 16,
             right: 16,
@@ -437,7 +401,7 @@ class _InputSampahPageState extends State<InputSampahPage>
           ),
         ],
       ],
-    ); // 3. Pastikan penutupnya cukup menggunakan titik koma di sini (karena SafeArea dihapus)
+    ); 
   }
 
   Widget _buildErrorState() {
@@ -470,9 +434,7 @@ class _InputSampahPageState extends State<InputSampahPage>
     );
   }
 
-  // =========================
   // FORM TERKELOLA
-  // =========================
   Widget _buildFormTerkelola() {
     final jenisItems = jenisByKategori(selectedKategoriTerkelola);
 
@@ -529,7 +491,7 @@ class _InputSampahPageState extends State<InputSampahPage>
 
           const SizedBox(height: 16),
 
-          // Jenis Sampah (dinamis dari master, sesuai kategori)
+          // Jenis Sampah (sesuai kategori)
           _buildLabel("Jenis Sampah", required: true),
           _buildDropdown<int>(
             hint: "-- Pilih Jenis --",
@@ -579,9 +541,8 @@ class _InputSampahPageState extends State<InputSampahPage>
     );
   }
 
-  // =========================
   // FORM DISERAHKAN
-  // =========================
+
   Widget _buildFormDiserahkan() {
     final jenisItems = jenisByKategori(selectedKategoriDiserahkan);
 
@@ -639,7 +600,7 @@ class _InputSampahPageState extends State<InputSampahPage>
 
           const SizedBox(height: 16),
 
-          // Jenis Sampah (dinamis dari master, kategori Residu)
+          // Jenis Sampah (dari master, kategori Residu)
           _buildLabel("Jenis Sampah", required: true),
           _buildDropdown<int>(
             hint: "-- Pilih Jenis --",
@@ -658,7 +619,7 @@ class _InputSampahPageState extends State<InputSampahPage>
 
           const SizedBox(height: 16),
 
-          // Tujuan Diserahkan (dinamis dari master)
+          // Tujuan Diserahkan (dari master)
           _buildLabel("Tujuan Diserahkan", required: true),
           _buildDropdown<int>(
             hint: "-- Pilih Tujuan --",
@@ -707,9 +668,7 @@ class _InputSampahPageState extends State<InputSampahPage>
     );
   }
 
-  // =========================
   // SHARED WIDGETS
-  // =========================
   Widget _buildSubmitButton({
     required bool isLoading,
     required VoidCallback onPressed,

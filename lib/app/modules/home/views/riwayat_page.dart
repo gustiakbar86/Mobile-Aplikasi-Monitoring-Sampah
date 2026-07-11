@@ -11,9 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../utils/api_endpoints.dart';
 
-// =========================
 // MODEL SAMPAH TERKELOLA
-// =========================
 class SampahTerkelola {
   final int id;
   final int idLokasi;
@@ -55,9 +53,7 @@ class SampahTerkelola {
   }
 }
 
-// =========================
 // MODEL SAMPAH DISERAHKAN
-// =========================
 class SampahDiserahkan {
   final int id;
   final int idLokasi;
@@ -87,7 +83,6 @@ class SampahDiserahkan {
     this.foto,
   });
 
-  // Perbaikan parsing tanggal dengan format fleksibel hanya di sampah diserahkan
   factory SampahDiserahkan.fromJson(Map<String, dynamic> json) {
     String rawDate = json['tgl_diserahkan']?.toString() ?? '-';
     String formattedDate = '-';
@@ -119,9 +114,6 @@ class SampahDiserahkan {
   }
 }
 
-// =========================
-// HELPER PARSING TANGGAL
-// =========================
 DateTime _parseDateFlexible(String dateStr) {
   if (dateStr == '-') return DateTime.now();
 
@@ -155,9 +147,7 @@ DateTime _parseDateFlexible(String dateStr) {
   return DateTime.now();
 }
 
-// =========================
 // HALAMAN RIWAYAT
-// =========================
 class RiwayatPage extends StatefulWidget {
   const RiwayatPage({super.key});
 
@@ -172,9 +162,6 @@ class _RiwayatPageState extends State<RiwayatPage>
   Timer? _debounceTerkelola;
   Timer? _debounceDiserahkan;
 
-  // =========================================================
-  // KATEGORI TETAP (sesuai aturan bisnis & web)
-  // =========================================================
   static const List<Map<String, String>> kategoriTerkelola = [
     {"id": "Organik", "nama": "Organik"},
     {"id": "Anorganik", "nama": "Anorganik"},
@@ -183,15 +170,12 @@ class _RiwayatPageState extends State<RiwayatPage>
     {"id": "Residu", "nama": "Residu"},
   ];
 
-  // =========================================================
-  // DATA MASTER (dinamis dari API /master-data)
-  // =========================================================
   List<Map<String, dynamic>> lokasiMaster = [];
-  List<Map<String, dynamic>> jenisMaster  = []; // id_jenis, nama_jenis, kategori_jenis
-  List<Map<String, dynamic>> tujuanAktif  = []; // hanya status aktif
-  List<Map<String, dynamic>> tujuanAll    = []; // semua (utk menampilkan tujuan existing yg dinonaktifkan)
+  List<Map<String, dynamic>> jenisMaster  = []; 
+  List<Map<String, dynamic>> tujuanAktif  = []; 
+  List<Map<String, dynamic>> tujuanAll    = [];
 
-  // ---- Sampah Terkelola ----
+  // Sampah Terkelola
   List<SampahTerkelola> listTerkelola       = [];
   List<SampahTerkelola> listTerkelolaFilter = [];
   bool isLoadingTerkelola                   = false;
@@ -202,7 +186,7 @@ class _RiwayatPageState extends State<RiwayatPage>
   int totalTerkelola                        = 0;
   int lastPageTerkelola                     = 1;
 
-  // ---- Sampah Diserahkan ----
+  // Sampah Diserahkan
   List<SampahDiserahkan> listDiserahkan       = [];
   List<SampahDiserahkan> listDiserahkanFilter = [];
   bool isLoadingDiserahkan                    = false;
@@ -236,9 +220,7 @@ class _RiwayatPageState extends State<RiwayatPage>
     super.dispose();
   }
 
-  // =========================================================
-  // FETCH DATA MASTER (untuk dropdown form edit)
-  // =========================================================
+  // FETCH Data Master (untuk dropdown form edit)
   String get _masterDataUrl => ApiEndpoints.sampahTerkelola
       .replaceFirst(RegExp(r'/sampah-terkelola/?$'), '/master-data');
 
@@ -272,18 +254,17 @@ class _RiwayatPageState extends State<RiwayatPage>
             lokasiMaster = _toListMap(data['lokasi_asal']);
             jenisMaster  = _toListMap(data['jenis']);
             tujuanAktif  = _toListMap(data['tujuan_sampah']);
-            // tujuan_sampah_all = semua (fallback ke tujuan_sampah bila backend belum diperbarui)
+            // tujuan_sampah_all
             final all = _toListMap(data['tujuan_sampah_all']);
             tujuanAll = all.isNotEmpty ? all : tujuanAktif;
           });
         }
       }
     } catch (e) {
-      // diabaikan; dropdown akan kosong bila gagal, tidak membuat crash
+      // diabaikan
     }
   }
 
-  // Filter jenis berdasarkan kategori terpilih (case-insensitive)
   List<Map<String, dynamic>> _jenisByKategori(String? kategori) {
     if (kategori == null) return [];
     final k = kategori.toLowerCase();
@@ -292,7 +273,6 @@ class _RiwayatPageState extends State<RiwayatPage>
         .toList();
   }
 
-  // Cocokkan teks kategori (apa pun kapitalisasinya) ke salah satu id kategori tetap
   String? _matchKategori(List<Map<String, String>> list, String? raw) {
     if (raw == null) return null;
     final r = raw.toLowerCase();
@@ -302,7 +282,6 @@ class _RiwayatPageState extends State<RiwayatPage>
     return null;
   }
 
-  // Cari kategori dari id jenis (lewat master)
   String? _kategoriFromIdJenis(int idJenis) {
     final f = jenisMaster.firstWhere(
       (e) => _asInt(e['id_jenis']) == idJenis,
@@ -311,9 +290,7 @@ class _RiwayatPageState extends State<RiwayatPage>
     return f.isEmpty ? null : '${f['kategori_jenis']}';
   }
 
-  // =========================
   // FETCH SAMPAH TERKELOLA
-  // =========================
   Future<void> fetchSampahTerkelola({int page = 1}) async {
     if (mounted) setState(() { isLoadingTerkelola = true; errorTerkelola = ''; });
 
@@ -357,9 +334,7 @@ class _RiwayatPageState extends State<RiwayatPage>
     }
   }
 
-  // =========================
   // FETCH SAMPAH DISERAHKAN
-  // =========================
   Future<void> fetchSampahDiserahkan({int page = 1}) async {
     if (mounted) setState(() { isLoadingDiserahkan = true; errorDiserahkan = ''; });
 
@@ -403,14 +378,6 @@ class _RiwayatPageState extends State<RiwayatPage>
     }
   }
 
-  // =========================================================
-  // Ambil pesan error yang informatif dari response backend.
-  // Laravel mengirim 'message' untuk error umum (mis. 500), tapi untuk
-  // error validasi (422) hanya mengirim 'errors' (map field -> [pesan]).
-  // Tanpa ini, petugas hanya melihat "Terjadi kesalahan" tanpa tahu
-  // field mana yang bermasalah (mis. saat edit hasil delegasi admin,
-  // yang mana berat/lokasi/jenis masih kosong/0 dan wajib diisi ulang).
-  // =========================================================
   String _extractErrorMessage(dynamic data) {
     if (data is Map) {
       if (data['message'] is String && (data['message'] as String).isNotEmpty) {
@@ -435,7 +402,7 @@ class _RiwayatPageState extends State<RiwayatPage>
   }
 
   void onSearchTerkelola(String query) {
-    // Pencarian berbasis tanggal (mis. ketik 19 -> hanya tgl 19), diproses di server.
+    // Pencarian berbasis tanggal 
     _debounceTerkelola?.cancel();
     _debounceTerkelola = Timer(const Duration(milliseconds: 450), () {
       fetchSampahTerkelola(page: 1);
@@ -443,21 +410,13 @@ class _RiwayatPageState extends State<RiwayatPage>
   }
 
   void onSearchDiserahkan(String query) {
-    // Pencarian berbasis tanggal (mis. ketik 19 -> hanya tgl 19), diproses di server.
+    // Pencarian berbasis tanggal .
     _debounceDiserahkan?.cancel();
     _debounceDiserahkan = Timer(const Duration(milliseconds: 450), () {
       fetchSampahDiserahkan(page: 1);
     });
   }
 
-  // =========================
-  // PREVIEW FOTO
-  // =========================
-  // =========================
-  // PILIH SUMBER FOTO (kamera / galeri) + batasi resolusi
-  // =========================
-  // Resolusi & kualitas dibatasi supaya file tetap di bawah limit backend
-  // (2MB) walau diambil langsung dari kamera beresolusi tinggi.
   Future<File?> _pilihFoto() async {
     final source = await Get.bottomSheet<ImageSource>(
       SafeArea(
@@ -495,7 +454,7 @@ class _RiwayatPageState extends State<RiwayatPage>
     final picked = await ImagePicker().pickImage(
       source: source,
       imageQuality: 70,
-      maxWidth: 1600,   // turunkan resolusi agar file tetap ringan (< 2MB)
+      maxWidth: 1600,   // turunkan resolusi agar file tetap ringan dibawah 2 mb
       maxHeight: 1600,
     );
     return picked != null ? File(picked.path) : null;
@@ -537,19 +496,13 @@ class _RiwayatPageState extends State<RiwayatPage>
       ),
     );
   }
-
-  // =========================
   // SHOW EDIT TERKELOLA
-  // =========================
   void _showEditTerkelola(SampahTerkelola item) {
-    // Record hasil delegasi admin punya berat default 0 (belum diisi petugas).
-    // Kosongkan field-nya supaya jelas terlihat wajib diisi, bukan dianggap "sudah 0".
     final beratC  = TextEditingController(
       text: item.beratKg > 0 ? "${item.beratKg}" : "",
     );
     final alasanC = TextEditingController(text: item.alasanEdit ?? '');
 
-    // Kategori tetap (Organik / Anorganik), diresolusi dari data existing
     String? resolvedKategori = _matchKategori(kategoriTerkelola, item.kategoriJenis)
         ?? _matchKategori(kategoriTerkelola, _kategoriFromIdJenis(item.idJenis));
 
@@ -569,7 +522,6 @@ class _RiwayatPageState extends State<RiwayatPage>
         builder: (context, setStateSheet) {
           final jenisItems = _jenisByKategori(selectedKategori);
           return Container(
-            // 1. Membatasi tinggi maksimal bottom sheet agar rounded corner tetap terlihat
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
@@ -578,12 +530,9 @@ class _RiwayatPageState extends State<RiwayatPage>
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: SafeArea(
-              // 2. SafeArea menjaga isi form tidak menabrak status bar/notch di atas layar
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
                 child: Padding(
-                  // 3. Pindahkan viewInsets.bottom ke sini agar area scroll view tetap luas 
-                  // dan form bisa di-scroll ke atas keyboard dengan lancar
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
@@ -781,12 +730,8 @@ class _RiwayatPageState extends State<RiwayatPage>
     );
   }
 
-  // =========================
   // SHOW EDIT DISERAHKAN
-  // =========================
   void _showEditDiserahkan(SampahDiserahkan item) {
-    // Record hasil delegasi admin punya berat default 0 (belum diisi petugas).
-    // Kosongkan field-nya supaya jelas terlihat wajib diisi, bukan dianggap "sudah 0".
     final beratC  = TextEditingController(
       text: item.beratKg > 0 ? "${item.beratKg}" : "",
     );
@@ -806,7 +751,7 @@ class _RiwayatPageState extends State<RiwayatPage>
             .any((e) => _asInt(e['id_jenis']) == item.idJenis)
         ? item.idJenis : null;
 
-    // Tujuan untuk edit = aktif + tujuan yang sedang dipakai (walau sudah nonaktif)
+    // Tujuan untuk edit
     final List<Map<String, dynamic>> tujuanItems = [...tujuanAktif];
     if (!tujuanItems.any((e) => _asInt(e['id_tujuan']) == item.idTujuan)) {
       final cur = tujuanAll.firstWhere(
@@ -826,7 +771,6 @@ class _RiwayatPageState extends State<RiwayatPage>
         builder: (context, setStateSheet) {
           final jenisItems = _jenisByKategori(selectedKategori);
           return Container(
-            // 1. Membatasi tinggi maksimal bottom sheet agar rounded corner tetap terlihat
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
@@ -835,12 +779,9 @@ class _RiwayatPageState extends State<RiwayatPage>
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: SafeArea(
-              // 2. SafeArea menjaga isi form tidak menabrak status bar/notch di atas layar
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
                 child: Padding(
-                  // 3. Pindahkan viewInsets.bottom ke sini agar area scroll view tetap luas 
-                  // dan form bisa di-scroll ke atas keyboard dengan lancar
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
@@ -1053,20 +994,16 @@ class _RiwayatPageState extends State<RiwayatPage>
     );
   }
 
-  // =========================
   // BUILD
-  // =========================
   @override
   Widget build(BuildContext context) {
-    // 1. Hapus SafeArea, langsung gunakan Column
     return Column(
       children: [
         Container(
           width: double.infinity,
           color: const Color(0xFF1A3A6B),
-          // 2. Sesuaikan padding untuk memperhitungkan status bar (poni HP)
           padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 12, // 👈 Padding atas dinamis
+            top: MediaQuery.of(context).padding.top + 12,
             bottom: 12,
             left: 16,
             right: 16,
@@ -1095,16 +1032,14 @@ class _RiwayatPageState extends State<RiwayatPage>
           ),
         ),
       ],
-    ); // 3. Pastikan penutupnya cukup menggunakan titik koma (;) di sini
+    ); 
   }
 
   static const _headerStyle = TextStyle(
     color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold,
   );
 
-  // =========================
   // TAB TERKELOLA
-  // =========================
   Widget _buildTerkelolaTab() {
     if (isLoadingTerkelola) return const Center(child: CircularProgressIndicator());
     if (errorTerkelola.isNotEmpty) {
@@ -1196,9 +1131,7 @@ class _RiwayatPageState extends State<RiwayatPage>
     );
   }
 
-  // =========================
   // TAB DISERAHKAN
-  // =========================
   Widget _buildDiserahkanTab() {
     if (isLoadingDiserahkan) return const Center(child: CircularProgressIndicator());
     if (errorDiserahkan.isNotEmpty) {
@@ -1304,9 +1237,7 @@ class _RiwayatPageState extends State<RiwayatPage>
     );
   }
 
-  // =========================
   // SHARED WIDGETS
-  // =========================
   Widget _buildFotoWidget(String? foto) {
     if (foto == null) return const Text("-", style: TextStyle(fontSize: 11), textAlign: TextAlign.center);
     return GestureDetector(
@@ -1410,9 +1341,7 @@ class _RiwayatPageState extends State<RiwayatPage>
     );
   }
 
-  // =========================
   // HELPER EDIT WIDGETS
-  // =========================
   Widget _editLabel(String text, {bool required = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

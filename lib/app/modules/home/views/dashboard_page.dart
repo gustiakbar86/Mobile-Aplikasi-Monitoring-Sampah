@@ -22,15 +22,14 @@ class _DashboardPageState extends State<DashboardPage> {
 
   bool isLoading = false;
 
-  // Filter: 3 pilihan saja
   String filterJenis = "semua";
-  String filterWaktu = "minggu"; // hari | minggu | bulan
+  String filterWaktu = "minggu"; // hari / minggu / bulan
 
   List<dynamic> dataTerkelola = [];
   List<dynamic> dataDiserahkan = [];
 
   Map<String, double> pieChartData = {};
-  List<double> barChartData = List.filled(7, 0.0); // selalu 7 (Senin-Minggu)
+  List<double> barChartData = List.filled(7, 0.0); 
   double totalKeseluruhan = 0.0;
 
   @override
@@ -87,9 +86,6 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  // Bar chart dinamis:
-  // - hari/minggu → 7 bucket (Senin-Minggu)
-  // - bulan       → 4 bucket (Minggu 1-4)
   int get _jumlahBucket => filterWaktu == 'bulan' ? 4 : 7;
 
   List<String> get _labelBucket => filterWaktu == 'bulan'
@@ -98,9 +94,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   int _bucketIndex(DateTime d) {
     if (filterWaktu == 'bulan') {
-      return ((d.day - 1) ~/ 7).clamp(0, 3); // 0=Minggu1 … 3=Minggu4
+      return ((d.day - 1) ~/ 7).clamp(0, 3); 
     }
-    return d.weekday - 1; // 0=Senin … 6=Minggu
+    return d.weekday - 1; 
   }
 
   DateTime? _parseDateSafe(String raw) {
@@ -109,8 +105,8 @@ class _DashboardPageState extends State<DashboardPage> {
     try {
       if (cleanDate.contains('-')) {
         final p = cleanDate.split('-');
-        if (p[0].length == 4) return DateTime.parse(cleanDate);       // YYYY-MM-DD
-        if (p[2].length == 4) return DateTime(                        // DD-MM-YYYY
+        if (p[0].length == 4) return DateTime.parse(cleanDate);     
+        if (p[2].length == 4) return DateTime(                        
           int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
       }
     } catch (_) {}
@@ -119,31 +115,26 @@ class _DashboardPageState extends State<DashboardPage> {
 
   void _prosesDataSesuaiFilter() {
     Map<String, double> tempPie = {};
-    List<double> tempBar = List.filled(7, 0.0); // Senin(0)..Minggu(6)
+    List<double> tempBar = List.filled(7, 0.0); 
     double tempTotal = 0.0;
     final now = DateTime.now();
 
-    // Batas minggu berjalan (Senin s.d. Minggu)
     final startOfWeek = DateTime(now.year, now.month, now.day)
         .subtract(Duration(days: now.weekday - 1));
     final endOfWeek = startOfWeek
         .add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
 
-    // Batas bulan berjalan (hari pertama s.d. terakhir)
     final startOfMonth = DateTime(now.year, now.month, 1);
     final endOfMonth   = DateTime(now.year, now.month + 1, 1)
         .subtract(const Duration(seconds: 1));
 
     void olahItem(Map<String, dynamic> item, bool isTerkelola) {
-      // Skip data delegasi yang belum dilengkapi petugas
       if (item['id_lokasi'] == null || item['id_jenis'] == null) return;
 
       final rawDate =
           item[isTerkelola ? 'tgl' : 'tgl_diserahkan']?.toString() ?? '';
       final DateTime? d = _parseDateSafe(rawDate);
       if (d == null) return;
-
-      // ── Filter waktu ─────────────────────────────────────────────────
       switch (filterWaktu) {
         case 'hari':
           if (d.year != now.year || d.month != now.month || d.day != now.day)
@@ -160,13 +151,10 @@ class _DashboardPageState extends State<DashboardPage> {
       final berat = double.tryParse(item['jumlah_berat'].toString()) ?? 0;
       tempTotal += berat;
 
-      // ── Pie chart ────────────────────────────────────────────────────
       final kategori = item['jenis']?['kategori_jenis'] ?? 'Lainnya';
       final suffix   = isTerkelola ? 'Terkelola' : 'Diserahkan';
       final pieKey   = '$kategori $suffix';
       tempPie[pieKey] = (tempPie[pieKey] ?? 0) + berat;
-
-      // ── Bar chart (bucket dinamis: hari/minggu=per hari, bulan=per minggu)
       final idx = _bucketIndex(d);
       if (idx >= 0 && idx < tempBar.length) tempBar[idx] += berat;
     }
@@ -190,7 +178,6 @@ class _DashboardPageState extends State<DashboardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Header ───────────────────────────────────────────────────────
         Container(
           width: double.infinity,
           color: const Color(0xFF1A3A6B),
@@ -247,7 +234,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
 
-        // ── Body ─────────────────────────────────────────────────────────
         Expanded(
           child: RefreshIndicator(
             onRefresh: fetchDataDariAPI,
@@ -258,7 +244,6 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Banner
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -284,8 +269,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
 
                   const SizedBox(height: 20),
-
-                  // ── Filter row ───────────────────────────────────────
                   Row(children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
@@ -314,7 +297,6 @@ class _DashboardPageState extends State<DashboardPage> {
                       child: DropdownButtonFormField<String>(
                         isExpanded: true,
                         value: filterWaktu,
-                        // 3 pilihan saja: Hari Ini, Minggu Ini, Bulan Ini
                         items: const [
                           DropdownMenuItem(value: "hari",  child: Text("Hari Ini",   style: TextStyle(fontSize: 13))),
                           DropdownMenuItem(value: "minggu",child: Text("Minggu Ini", style: TextStyle(fontSize: 13))),

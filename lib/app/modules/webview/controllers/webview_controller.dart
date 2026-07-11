@@ -6,12 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:url_launcher/url_launcher.dart';
 
-/// Argumen yang dikirim via Get.arguments saat navigasi ke halaman webview.
-/// Contoh:
-///   Get.toNamed('/webview', arguments: WebviewArgs(
-///     url: 'https://gusti-edo.org/pengunjung-web-p-waste/',
-///     title: 'Laporan Pengunjung',
-///   ));
 class WebviewArgs {
   final String url;
   final String title;
@@ -37,10 +31,7 @@ class WebviewPageController extends GetxController {
         : const WebviewArgs(url: 'about:blank', title: 'Halaman');
     title.value = args.title;
 
-    // Minta izin kamera & lokasi SEBELUM WebView dibuka. Tanpa ini,
-    // Android sering tidak menampilkan opsi "Kamera" di file chooser
-    // saat halaman web memakai <input type="file" capture>, karena
-    // izin runtime belum pernah disetujui user sama sekali.
+    // Minta izin kamera dan lokasi SEBELUM WebView dibuka.
     _requestUpfrontPermissions();
   }
 
@@ -51,20 +42,11 @@ class WebviewPageController extends GetxController {
 
   void onWebViewCreated(InAppWebViewController controller) {
     webViewController = controller;
-
-    // Web memanggil ini lewat:
-    //   window.flutter_inappwebview.callHandler('ambilFotoKamera');
-    // Handler ini WAJIB didaftarkan sebelum web sempat memanggilnya,
-    // kalau tidak, panggilan dari JS akan diabaikan tanpa error apapun
-    // (persis gejala "tombol ambil foto tidak bereaksi").
     controller.addJavaScriptHandler(
       handlerName: 'ambilFotoKamera',
       callback: (args) async {
         final base64Image = await _ambilFotoDenganKamera();
-        // Dikembalikan sebagai return value dari callHandler(...) di JS,
-        // bisa ditangkap lewat:
-        //   const hasil = await window.flutter_inappwebview.callHandler('ambilFotoKamera');
-        return base64Image; // null kalau user membatalkan
+        return base64Image;
       },
     );
   }
@@ -82,8 +64,6 @@ class WebviewPageController extends GetxController {
     if (picked == null) return null;
 
     final bytes = await picked.readAsBytes();
-    // Web mengecek `dataUrl.indexOf('data:') !== 0`, jadi HARUS berupa
-    // data URL lengkap, bukan base64 mentah.
     return 'data:image/jpeg;base64,${base64Encode(bytes)}';
   }
 
@@ -112,15 +92,11 @@ class WebviewPageController extends GetxController {
     await webViewController?.reload();
   }
 
-  /// Dipanggil saat halaman web meminta izin kamera/mikrofon (getUserMedia)
-  /// atau lokasi. Tanpa handler ini, InAppWebView akan otomatis MENOLAK
-  /// permintaan izin dari halaman web, sehingga fitur "Ambil Foto Titik
-  /// Sampah" di web pengunjung tidak akan berfungsi di dalam WebView.
   Future<PermissionResponse> onPermissionRequest(
     InAppWebViewController controller,
     PermissionRequest request,
   ) async {
-    // Minta izin native Android/iOS sesuai jenis resource yang diminta web.
+    // Izin native Android/iOS sesuai jenis resource yang diminta web.
     final wantsCamera = request.resources.contains(PermissionResourceType.CAMERA);
     final wantsMic = request.resources.contains(PermissionResourceType.MICROPHONE);
 
@@ -149,9 +125,6 @@ class WebviewPageController extends GetxController {
     );
   }
 
-  // Deteksi URL yang mengarah ke Google Maps / skema "geo:" — ini tidak
-  // masuk akal dirender di dalam WebView, jadi harus dilempar ke app
-  // Google Maps atau browser eksternal.
   bool _isMapsUrl(String url) {
     final u = url.toLowerCase();
     return u.startsWith('geo:') ||
@@ -173,11 +146,6 @@ class WebviewPageController extends GetxController {
     }
   }
 
-  /// Dipanggil saat halaman web coba buka tab/window baru, mis. lewat
-  /// window.open(url, '_blank') atau <a target="_blank">. Tanpa handler
-  /// ini, flutter_inappwebview DIAM-DIAM MENGABAIKAN permintaan tersebut
-  /// -- ini penyebab utama tombol "Buka Google Maps" terlihat tidak
-  /// merespons sama sekali saat ditekan.
   Future<bool> onCreateWindow(
     InAppWebViewController controller,
     CreateWindowAction createWindowAction,
@@ -186,13 +154,9 @@ class WebviewPageController extends GetxController {
     if (url != null) {
       await _openExternally(url);
     }
-    // return false = tidak membuat window WebView baru (karena sudah
-    // ditangani dengan membuka app eksternal).
     return false;
   }
 
-  /// Jaring pengaman untuk kasus link Maps yang dinavigasi langsung
-  /// (bukan window baru) di dalam WebView yang sama.
   Future<NavigationActionPolicy> shouldOverrideUrlLoading(
     InAppWebViewController controller,
     NavigationAction navigationAction,

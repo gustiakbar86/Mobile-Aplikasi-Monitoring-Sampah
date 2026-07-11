@@ -11,7 +11,6 @@ void main() async {
 
   await DelegasiNotifService.instance.init();
 
-  // Inisialisasi format tanggal lokal Indonesia (dipakai dashboard admin)
   await initializeDateFormatting('id', null);
 
   // Cek session
@@ -19,9 +18,6 @@ void main() async {
   String? token = prefs.getString('token');
   String? role = prefs.getString('login_as');
 
-  // Tentukan halaman awal:
-  // - Belum ada token -> landing (pintu masuk: login / laporan pengunjung)
-  // - Sudah ada token  -> langsung ke home/admin sesuai role
   String initial = '/landing';
   if (token != null) {
     initial = (role == 'petugas') ? '/home' : '/admin';

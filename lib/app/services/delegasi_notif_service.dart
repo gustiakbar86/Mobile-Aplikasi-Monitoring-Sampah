@@ -1,14 +1,3 @@
-// ============================================================
-// lib/app/services/delegasi_notif_service.dart
-//
-// Notifikasi LOKAL untuk tugas delegasi (Opsi B).
-// Cara kerja: selama app petugas terbuka, service ini mengecek server
-// tiap X detik. Jika jumlah "tugas delegasi belum dikerjakan" bertambah
-// dibanding cek sebelumnya, tampilkan notifikasi lokal.
-//
-// Tidak butuh Firebase. Tidak ada perubahan backend.
-// Keterbatasan: notif hanya muncul saat aplikasi sedang DIBUKA.
-// ============================================================
 import 'dart:async';
 import 'dart:convert';
 
@@ -16,7 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../utils/api_endpoints.dart'; // sesuaikan path bila berbeda
+import '../utils/api_endpoints.dart'; 
 
 class DelegasiNotifService {
   DelegasiNotifService._();
@@ -27,11 +16,9 @@ class DelegasiNotifService {
 
   Timer? _timer;
   bool _initialized = false;
-  bool _sedangCek = false; // cegah tumpang-tindih request kalau interval pendek
+  bool _sedangCek = false; // kurangi request
 
-  // Interval polling (detik).
-  // CATATAN: diturunkan dari 30s -> 8s. Lihat penjelasan di chat soal
-  // trade-off beban server & baterai sebelum menurunkan lebih jauh lagi.
+  // beban server.
   static const int _intervalDetik = 8;
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -41,7 +28,6 @@ class DelegasiNotifService {
     importance: Importance.high,
   );
 
-  // ---------- Inisialisasi (panggil sekali, mis. di main) ----------
   Future<void> init() async {
     if (_initialized) return;
 
@@ -63,13 +49,11 @@ class DelegasiNotifService {
     _initialized = true;
   }
 
-  // ---------- Mulai polling (panggil setelah login sbg petugas) ----------
   Future<void> start() async {
     await init();
     _timer?.cancel();
 
-    // Cek pertama kali langsung (tanpa menunggu interval), tapi TANPA
-    // memunculkan notif — hanya untuk menyimpan baseline jumlah saat ini.
+    // memunculkan notif 
     await _cek(pertamaKali: true);
 
     _timer = Timer.periodic(
@@ -78,17 +62,14 @@ class DelegasiNotifService {
     );
   }
 
-  // ---------- Stop polling (panggil saat logout) ----------
+  // Berhenti polling dan muncul notif. dipanggil logout.
   void stop() {
     _timer?.cancel();
     _timer = null;
   }
 
-  // ---------- Logika cek ----------
+  // cek
   Future<void> _cek({bool pertamaKali = false}) async {
-    // Kalau request sebelumnya belum selesai (mis. koneksi lambat) dan
-    // interval sudah lewat lagi, lewati siklus ini supaya tidak menumpuk
-    // request paralel ke server.
     if (_sedangCek) return;
     _sedangCek = true;
 
@@ -97,9 +78,7 @@ class DelegasiNotifService {
       final token = prefs.getString('token');
       if (token == null) return; // belum login
 
-      // Lapis pengaman: notif delegasi hanya untuk petugas, bukan admin.
-      // Kalau start() terlanjur dipanggil untuk akun admin, cek ini
-      // memastikan polling langsung berhenti & tidak memunculkan notif.
+      // limitasi supaya hanya petugas
       final role = prefs.getString('login_as') ?? '';
       if (role != 'petugas') {
         stop();
@@ -112,7 +91,7 @@ class DelegasiNotifService {
       final jumlahTerakhir = prefs.getInt('delegasi_terakhir') ?? 0;
 
       if (pertamaKali) {
-        // hanya simpan baseline, tidak memunculkan notif
+        // hanya simpan baseline
         await prefs.setInt('delegasi_terakhir', jumlahSekarang);
         return;
       }
@@ -122,17 +101,16 @@ class DelegasiNotifService {
         await _tampilkanNotif(selisih);
       }
 
-      // update baseline (baik naik maupun turun karena sudah dikerjakan)
+      // update baseline
       await prefs.setInt('delegasi_terakhir', jumlahSekarang);
     } catch (_) {
-      // diabaikan; cek berikutnya coba lagi
+      // diabaikan
     } finally {
       _sedangCek = false;
     }
   }
 
   // Hitung total "tugas delegasi belum dikerjakan" dari kedua endpoint.
-  // Kriteria belum dikerjakan: id_laporan_pengunjung terisi & lokasi/jenis kosong.
   Future<int?> _hitungTugasDelegasi(String token) async {
     try {
       final headers = {

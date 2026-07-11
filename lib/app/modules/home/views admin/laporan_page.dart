@@ -9,7 +9,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Sesuaikan path import ini dengan lokasi file di proyekmu bila berbeda.
 import '../../../../app/utils/api_endpoints.dart';
 
 class LaporanPage extends StatefulWidget {
@@ -21,9 +20,6 @@ class LaporanPage extends StatefulWidget {
 
 class _LaporanPageState extends State<LaporanPage> {
   static const Color brand = Color(0xFF1A3A6B);
-
-  // Endpoint /laporan-pengunjung diturunkan dari sampah-terkelola
-  // agar tidak perlu menambah konstanta baru di ApiEndpoints.
   String get _baseLaporan => ApiEndpoints.sampahTerkelola
       .replaceFirst(RegExp(r'/sampah-terkelola/?$'), '/laporan-pengunjung');
 
@@ -65,9 +61,7 @@ class _LaporanPageState extends State<LaporanPage> {
     return prefs.getString('token') ?? '';
   }
 
-  // =========================
-  // FETCH LAPORAN
-  // =========================
+  // Fetch laporan
   Future<void> fetchLaporan({int page = 1}) async {
     if (mounted) setState(() { isLoading = true; errorMsg = null; });
     try {
@@ -118,9 +112,6 @@ class _LaporanPageState extends State<LaporanPage> {
     _debounce = Timer(const Duration(milliseconds: 450), () => fetchLaporan(page: 1));
   }
 
-  // =========================
-  // HELPER TAMPILAN
-  // =========================
   String _fmtTanggal(dynamic raw) {
     if (raw == null) return '-';
     final s = raw.toString();
@@ -136,7 +127,6 @@ class _LaporanPageState extends State<LaporanPage> {
       status != 'Didelegasikan' && status != 'Selesai';
 
     Color _statusColor(String status) {
-    // Ubah string status ke huruf kecil semua sebelum dicocokkan
     final s = status.toLowerCase().trim();
     
     if (s.contains('selesai')) {
@@ -144,10 +134,8 @@ class _LaporanPageState extends State<LaporanPage> {
     }
     
     if (s.contains('didelegasikan')) {
-      return const Color(0xFFFFB300); // Kuning/Amber sesuai gambar Anda
+      return const Color(0xFFFFB300);
     }
-    
-    // Status lainnya (seperti "menunggu delegasi") tetap abu-abu
     return Colors.grey.shade600; 
   }
 
@@ -195,11 +183,8 @@ class _LaporanPageState extends State<LaporanPage> {
       return;
     }
 
-    // (1) Utamakan URL Google Maps resmi: Maps akan mencocokkan koordinat
-    //     ke tempat/alamat terdekat bila tersedia (bukan sekadar koordinat).
     final webUri = Uri.parse(
         'https://www.google.com/maps/search/?api=1&query=$la,$ln');
-    // (2) Cadangan: skema geo: (memicu pemilih aplikasi peta di Android).
     final geoUri = Uri.parse('geo:$la,$ln?q=$la,$ln');
 
     try {
@@ -209,7 +194,6 @@ class _LaporanPageState extends State<LaporanPage> {
       }
       await launchUrl(geoUri, mode: LaunchMode.externalApplication);
     } catch (_) {
-      // Terakhir: salin koordinat agar tetap bisa dipakai manual
       Clipboard.setData(ClipboardData(text: '$la, $ln'));
       Get.snackbar("Tidak bisa membuka peta", "Koordinat disalin: $la, $ln",
           backgroundColor: brand, colorText: Colors.white,
@@ -217,9 +201,6 @@ class _LaporanPageState extends State<LaporanPage> {
     }
   }
 
-  // =========================
-  // HAPUS
-  // =========================
   Future<void> _hapus(int id, String pelapor) async {
     final ok = await Get.dialog<bool>(
       AlertDialog(
@@ -274,9 +255,7 @@ class _LaporanPageState extends State<LaporanPage> {
     }
   }
 
-  // =========================
-  // DELEGASI
-  // =========================
+  // Delegasi
   Future<List<Map<String, dynamic>>> _fetchPetugas() async {
     try {
       final res = await http.get(
@@ -519,16 +498,13 @@ class _LaporanPageState extends State<LaporanPage> {
     );
   }
 
-  // =========================
-  // BUILD
-  // =========================
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
       child: Column(
         children: [
-          // Header navy
+          // Header
           AnnotatedRegion<SystemUiOverlayStyle>(
             value: SystemUiOverlayStyle.light,
             child: Container(
@@ -543,7 +519,7 @@ class _LaporanPageState extends State<LaporanPage> {
             ),
           ),
 
-          // Filter + pencarian
+          // Filter pencarian
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -583,7 +559,6 @@ class _LaporanPageState extends State<LaporanPage> {
             ]),
           ),
 
-          // Konten
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator(color: brand))
@@ -605,7 +580,6 @@ class _LaporanPageState extends State<LaporanPage> {
                       ),
           ),
 
-          // Paginasi
           if (!isLoading && errorMsg == null && lastPage > 1)
             Container(
               color: Colors.white,
@@ -743,7 +717,6 @@ class _LaporanPageState extends State<LaporanPage> {
             ),
           ]),
 
-          // Petugas (bila sudah didelegasikan)
           if (petugasNama != null) ...[
             const SizedBox(height: 6),
             Row(children: [
@@ -760,7 +733,6 @@ class _LaporanPageState extends State<LaporanPage> {
             ]),
           ],
 
-          // Aksi (hanya bila belum didelegasikan)
           if (belum) ...[
             const SizedBox(height: 10),
             Row(

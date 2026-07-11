@@ -38,7 +38,6 @@ class KelolaMasterPage extends StatelessWidget {
               Tab(text: "Tujuan"),
               Tab(text: "Instansi"),
               Tab(text: "Dokumen"),
-              // Tab(text: "Export"),
             ],
           ),
         ),
@@ -48,8 +47,7 @@ class KelolaMasterPage extends StatelessWidget {
             _MasterJenis(),
             _MasterTujuan(),
             _MasterInstansi(),
-            _MasterDokumen(),
-            // _TabExport(),
+            _MasterDokumen(),            
           ],
         ),
       ),
@@ -123,9 +121,7 @@ InputDecoration _dec(String? hint) => InputDecoration(
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
     );
 
-// ======================================================
-// TAB 1: LOKASI ASAL
-// ======================================================
+// Tab Lokasi Asal
 class _MasterLokasi extends StatefulWidget {
   const _MasterLokasi();
   @override
@@ -193,8 +189,7 @@ class _MasterLokasiState extends State<_MasterLokasi> {
 
     Get.bottomSheet(
       isScrollControlled: true,
-      Container(
-        // 1. Batasi tinggi maksimal agar bottom sheet rounded corner tetap terlihat
+      Container(    
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
@@ -203,11 +198,9 @@ class _MasterLokasiState extends State<_MasterLokasi> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         child: SafeArea(
-          // 2. SafeArea menjaga isi form tidak melebihi batas atas status bar/notch
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
             child: Padding(
-              // 3. Pindahkan viewInsets.bottom ke sini untuk keyboard spacer
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
@@ -345,9 +338,7 @@ class _MasterLokasiState extends State<_MasterLokasi> {
   }
 }
 
-// ======================================================
-// TAB 2: JENIS SAMPAH
-// ======================================================
+// Tab Jenis Sampah
 class _MasterJenis extends StatefulWidget {
   const _MasterJenis();
   @override
@@ -417,7 +408,6 @@ class _MasterJenisState extends State<_MasterJenis> {
       isScrollControlled: true,
       StatefulBuilder(builder: (context, setSheet) {
         return Container(
-          // 1. Batasi tinggi maksimal
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
@@ -426,11 +416,9 @@ class _MasterJenisState extends State<_MasterJenis> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: SafeArea(
-            // 2. SafeArea
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
               child: Padding(
-                // 3. Spacer keyboard
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
@@ -583,9 +571,7 @@ class _MasterJenisState extends State<_MasterJenis> {
   }
 }
 
-// ======================================================
-// TAB 3: TUJUAN SAMPAH
-// ======================================================
+// Tab Tujuan Sampah
 class _MasterTujuan extends StatefulWidget {
   const _MasterTujuan();
   @override
@@ -662,7 +648,6 @@ class _MasterTujuanState extends State<_MasterTujuan> {
       isScrollControlled: true,
       StatefulBuilder(builder: (context, setSheet) {
         return Container(
-          // 1. Batasi tinggi maksimal
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
@@ -671,11 +656,9 @@ class _MasterTujuanState extends State<_MasterTujuan> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: SafeArea(
-            // 2. SafeArea
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
               child: Padding(
-                // 3. Spacer keyboard
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
@@ -842,9 +825,7 @@ class _MasterTujuanState extends State<_MasterTujuan> {
                   final e = filtered[i];
                   final statusTxt = (e['status'] == 1 || e['status'] == '1')
                       ? "Aktif"
-                      : "Nonaktif";
-                      
-                  // Memetakan kategori mentah dari API menjadi teks yang rapi
+                      : "Nonaktif";                    
                   final rawKat = e['kategori_tujuan']?.toString() ?? '-';
                   final katTxt = rawKat == 'bank_sampah'
                       ? 'Bank Sampah'
@@ -864,11 +845,7 @@ class _MasterTujuanState extends State<_MasterTujuan> {
   }
 }
 
-
-
-// ======================================================
-// TAB 4: INSTANSI
-// ======================================================
+// Tab Instansi
 class _MasterInstansi extends StatefulWidget {
   const _MasterInstansi();
   @override
@@ -1083,9 +1060,7 @@ class _MasterInstansiState extends State<_MasterInstansi> {
   }
 }
 
-// ======================================================
-// TAB 5: DOKUMEN  (CRUD penuh via API /dokumen, termasuk upload file)
-// ======================================================
+// Tab Dokumen
 class _MasterDokumen extends StatefulWidget {
   const _MasterDokumen();
   @override
@@ -1157,7 +1132,6 @@ class _MasterDokumenState extends State<_MasterDokumen> {
         text: (data?['berakhir'] ?? '').toString().split('T').first);
     int berlaku = (data?['berlaku'] == 1 || data?['berlaku'] == true) ? 1 : 0;
 
-    // File terpilih dari perangkat (null jika belum memilih).
     PlatformFile? pickedFile;
 
     Get.bottomSheet(
@@ -1183,7 +1157,6 @@ class _MasterDokumenState extends State<_MasterDokumen> {
             isEdit && (data['file_dokumen'] ?? '').toString().isNotEmpty;
 
         return Container(
-          // 1. Batasi tinggi maksimal
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
@@ -1192,11 +1165,9 @@ class _MasterDokumenState extends State<_MasterDokumen> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: SafeArea(
-            // 2. SafeArea
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
               child: Padding(
-                // 3. Spacer keyboard
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
@@ -1218,7 +1189,6 @@ class _MasterDokumenState extends State<_MasterDokumen> {
                     const SizedBox(height: 12),
 
                     _lbl(isEdit ? "File Dokumen" : "File Dokumen *"),
-                    // Info file lama saat edit
                     if (fileLamaAda)
                       Container(
                         width: double.infinity,
@@ -1247,7 +1217,6 @@ class _MasterDokumenState extends State<_MasterDokumen> {
                           ],
                         ),
                       ),
-                    // Tombol pilih file
                     OutlinedButton.icon(
                       onPressed: pickFile,
                       icon: const Icon(Icons.upload_file, size: 18),
@@ -1357,8 +1326,6 @@ class _MasterDokumenState extends State<_MasterDokumen> {
         child: Text(t, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
       );
 
-  /// Unduh file dokumen ke penyimpanan sementara aplikasi lalu buka
-  /// langsung dengan aplikasi bawaan perangkat (PDF/Word/Excel).
   Future<void> _lihatFile(String url) async {
     if (url.isEmpty) {
       Get.snackbar("Tidak ada file", "File dokumen tidak tersedia",
@@ -1366,14 +1333,12 @@ class _MasterDokumenState extends State<_MasterDokumen> {
       return;
     }
 
-    // Dialog loading (tidak bisa ditutup manual) selama proses unduh.
     Get.dialog(
       const Center(child: CircularProgressIndicator(color: _brand)),
       barrierDismissible: false,
     );
 
     try {
-      // Nama file: ambil dari URL, bersihkan query bila ada.
       String namaFile = Uri.parse(url).pathSegments.isNotEmpty
           ? Uri.parse(url).pathSegments.last
           : 'dokumen_${DateTime.now().millisecondsSinceEpoch}';
@@ -1385,11 +1350,8 @@ class _MasterDokumenState extends State<_MasterDokumen> {
       final dir = await getApplicationDocumentsDirectory();
       final savePath = '${dir.path}/$namaFile';
 
-      // Jika file dokumen dilindungi auth, tambahkan header di sini:
-      //   options: Options(headers: {'Authorization': 'Bearer ${await _token()}'})
       await Dio().download(url, savePath);
 
-      // Tutup dialog loading sebelum membuka file.
       if (Get.isDialogOpen ?? false) Get.back();
 
       final result = await OpenFilex.open(savePath);
@@ -1431,7 +1393,6 @@ class _MasterDokumenState extends State<_MasterDokumen> {
     }
 
     try {
-      // Endpoint: POST /dokumen (tambah) atau POST /dokumen/{id} + _method=PUT (edit).
       final uri = isEdit
           ? Uri.parse('${ApiEndpoints.dokumen}/$id')
           : Uri.parse(ApiEndpoints.dokumen);
@@ -1449,7 +1410,6 @@ class _MasterDokumenState extends State<_MasterDokumen> {
       if (isEdit) req.fields['_method'] = 'PUT';
       if (berakhir.isNotEmpty) req.fields['berakhir'] = berakhir;
 
-      // Lampirkan file bila ada (wajib saat tambah, opsional saat edit).
       if (file != null && file.path != null) {
         req.files.add(await http.MultipartFile.fromPath('file_dokumen', file.path!));
       }
@@ -1541,7 +1501,6 @@ class _MasterDokumenState extends State<_MasterDokumen> {
   }
 }
 
-// Kartu khusus dokumen: ada tombol "Lihat File" bila tersedia.
 Widget _kartuDokumen({
   required String judul,
   String? subtitle,
@@ -1615,238 +1574,7 @@ Widget _kartuDokumen({
   );
 }
 
-/*
-// ======================================================
-// TAB 6: EXPORT EXCEL
-// ======================================================
-class _TabExport extends StatefulWidget {
-  const _TabExport();
-  @override
-  State<_TabExport> createState() => _TabExportState();
-}
 
-class _TabExportState extends State<_TabExport> {
-  int tahun = DateTime.now().month >= 7
-      ? DateTime.now().year
-      : DateTime.now().year - 1;
-
-  // Jenis laporan yang tersedia (mengikuti export sisi web).
-  String jenisLaporan = 'lengkap'; // 'lengkap' | 'bulanan' | 'neraca'
-
-  bool loading = false;
-
-  /// Mengunduh file Excel dari endpoint export (dibuat di backend) ke
-  /// penyimpanan aplikasi, lalu membukanya langsung dengan aplikasi
-  /// pembuka Excel di perangkat. Token dikirim melalui header Authorization
-  /// (endpoint export dilindungi auth:sanctum).
-  Future<void> _export() async {
-    setState(() => loading = true);
-
-    // Dialog loading selama proses unduh (tidak bisa ditutup manual).
-    Get.dialog(
-      const Center(child: CircularProgressIndicator(color: _brand)),
-      barrierDismissible: false,
-    );
-
-    try {
-      final token = await _token();
-
-      // Nama file lokal: sertakan tahun & tipe agar mudah dikenali.
-      final namaFile =
-          'Laporan_${jenisLaporan}_${tahun}-${tahun + 1}.xlsx';
-      final dir = await getApplicationDocumentsDirectory();
-      final savePath = '${dir.path}/$namaFile';
-
-      final uri = Uri.parse(ApiEndpoints.exportLaporan).replace(
-        queryParameters: {
-          'tahun': tahun.toString(),
-          'tipe': jenisLaporan,
-        },
-      ).toString();
-
-      await Dio().download(
-        uri,
-        savePath,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Accept':
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          },
-          // Terima status apa pun agar bisa menampilkan pesan error
-          // dari server bila bukan file (mis. 401/500).
-          followRedirects: true,
-          validateStatus: (s) => s != null && s < 500,
-        ),
-      );
-
-      // Tutup dialog loading sebelum membuka file.
-      if (Get.isDialogOpen ?? false) Get.back();
-
-      final result = await OpenFilex.open(savePath);
-      if (result.type != ResultType.done) {
-        Get.snackbar(
-          "Tidak dapat membuka",
-          "File terunduh, tetapi tidak ada aplikasi untuk membuka Excel. "
-              "Silakan pasang aplikasi seperti WPS Office atau Google Sheets. "
-              "(${result.message})",
-          backgroundColor: Colors.orange, colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 5),
-        );
-      }
-    } catch (e) {
-      if (Get.isDialogOpen ?? false) Get.back();
-      Get.snackbar("Gagal", "Gagal mengunduh laporan: $e",
-          backgroundColor: Colors.red, colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM);
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tahunSekarang = DateTime.now().year;
-    final opsiTahun =
-        List<int>.generate(6, (i) => tahunSekarang - i); // 6 tahun terakhir
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.file_download_outlined, color: _brand),
-                    SizedBox(width: 8),
-                    Text("Export Laporan Excel",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold, color: _brand)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Unduh rekapitulasi data sampah dalam format Excel (.xlsx). "
-                  "File akan tersimpan di folder Download perangkat.",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                const Divider(height: 24),
-
-                _lbl("Tahun Periode"),
-                DropdownButtonFormField<int>(
-                  value: tahun,
-                  isExpanded: true,
-                  decoration: _dec(null),
-                  items: opsiTahun
-                      .map((y) => DropdownMenuItem(
-                            value: y,
-                            child: Text("$y / ${y + 1}"),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => tahun = v ?? tahun),
-                ),
-                const SizedBox(height: 12),
-
-                _lbl("Jenis Laporan"),
-                DropdownButtonFormField<String>(
-                  value: jenisLaporan,
-                  isExpanded: true,
-                  decoration: _dec(null),
-                  items: const [
-                    DropdownMenuItem(
-                        value: 'lengkap',
-                        child: Text("Laporan Lengkap (Neraca + Bulanan)")),
-                    DropdownMenuItem(
-                        value: 'bulanan',
-                        child: Text("Laporan Bulanan (Harian per Bulan)")),
-                    DropdownMenuItem(
-                        value: 'neraca',
-                        child: Text("Laporan Neraca")),
-                  ],
-                  onChanged: (v) => setState(() => jenisLaporan = v ?? 'lengkap'),
-                ),
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: loading ? null : _export,
-                    icon: loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2))
-                        : const Icon(Icons.download),
-                    label: Text(loading ? "Memproses..." : "Export & Unduh"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _brand,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF2FB),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.info_outline, size: 18, color: _brand),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    "Periode tahunan mengikuti tahun anggaran (Juli s.d. Juni tahun berikutnya). "
-                    "Unduhan diproses melalui browser perangkat.",
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _lbl(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Text(t, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-      );
-}
-
-*/
-
-// ======================================================
-// KOMPONEN BERSAMA
-// ======================================================
 class _MasterScaffold extends StatelessWidget {
   final String tambahLabel;
   final VoidCallback onTambah;

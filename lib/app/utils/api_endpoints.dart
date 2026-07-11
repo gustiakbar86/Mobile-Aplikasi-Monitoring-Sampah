@@ -1,5 +1,5 @@
 class ApiEndpoints {
-  // API Utama
+  // API utama
   static const String baseUrl = "https://gusti-edo.org/api/v1";
 
   static const String loginUser  = "$baseUrl/login"; // login user
@@ -10,16 +10,15 @@ class ApiEndpoints {
   static const String petugas = "$baseUrl/petugas"; // data petugas
   static const String registerPetugas = "$baseUrl/register"; // endpoint untuk registrasi petugas
 
-  //laporan pengunjung
+  // laporan pengunjung
   static const String laporanPengunjung = "$baseUrl/laporan-pengunjung";
 
-  // Master CRUD
+  // Data master lengkap
   static const String masterLokasi = "$baseUrl/master/lokasi-asal";
   static const String masterJenis = "$baseUrl/master/jenis";
   static const String masterTujuan = "$baseUrl/master/tujuan-sampah";
-  static const String masterInstansi = "$baseUrl/master/instansi"; // data master instansi
+  static const String masterInstansi = "$baseUrl/master/instansi";
 
-  // Dokumen (Berkas) & Export Laporan
-  static const String dokumen = "$baseUrl/dokumen"; // CRUD dokumen
-  static const String exportLaporan = "$baseUrl/export-laporan"; // unduh laporan excel
+  // Dokumen (Berkas)
+  static const String dokumen = "$baseUrl/dokumen"; // Dokumen
 }

@@ -12,9 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../utils/api_endpoints.dart';
 
-// =========================
 // MODEL SAMPAH TERKELOLA
-// =========================
 class SampahTerkelola {
   final int id;
   final int idLokasi;
@@ -53,7 +51,6 @@ class SampahTerkelola {
         : int.tryParse('${json['id_jenis']}');
     final adaDelegasi = json['id_laporan_pengunjung'] != null;
 
-    // Utamakan flag dari backend (belum_lengkap); jika tidak ada, hitung sendiri.
     final bool belumLengkap = json.containsKey('belum_lengkap')
         ? (json['belum_lengkap'] == true || json['belum_lengkap'] == 1)
         : (adaDelegasi && (idLok == null || idJns == null));
@@ -75,9 +72,7 @@ class SampahTerkelola {
   }
 }
 
-// =========================
 // MODEL SAMPAH DISERAHKAN
-// =========================
 class SampahDiserahkan {
   final int id;
   final int idLokasi;
@@ -92,7 +87,7 @@ class SampahDiserahkan {
   final String? alasanEdit;
   final String? foto;
   final String user;
-  final bool belumLengkap; // true = delegasi belum dikerjakan petugas
+  final bool belumLengkap; 
 
   SampahDiserahkan({
     required this.id,
@@ -110,24 +105,16 @@ class SampahDiserahkan {
     this.user = '-',
     this.belumLengkap = false,
   });
-
-// 🌟 Perbaikan parsing tanggal dengan format fleksibel hanya di sampah diserakhan
   factory SampahDiserahkan.fromJson(Map<String, dynamic> json) {
     String rawDate = json['tgl_diserahkan']?.toString() ?? '-';
     String formattedDate = '-';
 
     if (rawDate != '-') {
-      // 1. Potong teks jam/waktu jika ada
-      String cleanDate = rawDate.split('T')[0].split(' ')[0]; 
-      
+      String cleanDate = rawDate.split('T')[0].split(' ')[0];       
       try {
-        // 2. Baca string tanggal bawaan API
         DateTime parsedDate = DateTime.parse(cleanDate);
-        
-        // 3. Ubah wujudnya menjadi dd-MM-yyyy (contoh: 03-06-2024)
         formattedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
       } catch (e) {
-        // Jika error parsing, kembalikan format asli yang sudah dibersihkan
         formattedDate = cleanDate;
       }
     }
@@ -166,17 +153,12 @@ class SampahDiserahkan {
   }
 }
 
-// =========================
-// HELPER PARSING TANGGAL
-// =========================
 DateTime _parseDateFlexible(String dateStr) {
   if (dateStr == '-') return DateTime.now();
 
-  // 1. Coba format standar ISO bawaan Dart (yyyy-MM-dd)
   DateTime? parsed = DateTime.tryParse(dateStr);
   if (parsed != null) return parsed;
 
-  // 2. Jika gagal, coba pecah secara manual untuk format dd/MM/yyyy atau dd-MM-yyyy
   try {
     List<String> parts = [];
     if (dateStr.contains('/')) {
@@ -184,32 +166,27 @@ DateTime _parseDateFlexible(String dateStr) {
     } else if (dateStr.contains('-')) {
       parts = dateStr.split('-');
     } else if (dateStr.contains(' ')) {
-      parts = dateStr.split(' ')[0].split('-'); // handle datetime string with spaces
+      parts = dateStr.split(' ')[0].split('-');
     }
 
     if (parts.length == 3) {
-      // Cek apakah formatnya dd-MM-yyyy
       if (parts[0].length <= 2 && parts[2].length >= 4) {
         int year = int.parse(parts[2].split(' ')[0]);
         return DateTime(year, int.parse(parts[1]), int.parse(parts[0]));
       }
-      // Cek apakah formatnya yyyy-MM-dd yang lolos parsing standar
       if (parts[0].length >= 4 && parts[2].length <= 2) {
         int year = int.parse(parts[0]);
         return DateTime(year, int.parse(parts[1]), int.parse(parts[2].split(' ')[0]));
       }
     }
   } catch (e) {
-    // Abaikan error, akan menggunakan DateTime.now() di bawah
-  }
+  } // diabaikan bila gagal datetime
 
-  // 3. Jika semua cara gagal, gunakan tanggal hari ini
+
   return DateTime.now();
 }
 
-// =========================
 // HALAMAN RIWAYAT
-// =========================
 class DataSampahPage extends StatefulWidget {
   const DataSampahPage({super.key});
 
@@ -224,9 +201,6 @@ class _DataSampahPageState extends State<DataSampahPage>
   Timer? _debounceTerkelola;
   Timer? _debounceDiserahkan;
 
-  // =========================================================
-  // KATEGORI TETAP (sesuai aturan bisnis & web)
-  // =========================================================
   static const List<Map<String, String>> kategoriTerkelola = [
     {"id": "Organik", "nama": "Organik"},
     {"id": "Anorganik", "nama": "Anorganik"},
@@ -235,15 +209,12 @@ class _DataSampahPageState extends State<DataSampahPage>
     {"id": "Residu", "nama": "Residu"},
   ];
 
-  // =========================================================
   // DATA MASTER (dinamis dari API /master-data)
-  // =========================================================
   List<Map<String, dynamic>> lokasiMaster = [];
   List<Map<String, dynamic>> jenisMaster  = []; // id_jenis, nama_jenis, kategori_jenis
   List<Map<String, dynamic>> tujuanAktif  = []; // hanya status aktif
-  List<Map<String, dynamic>> tujuanAll    = []; // semua (utk tujuan existing yg dinonaktifkan)
-
-  // ---- Sampah Terkelola ----
+  List<Map<String, dynamic>> tujuanAll    = []; // semua
+  // Sampah Terkelola
   List<SampahTerkelola> listTerkelola       = [];
   List<SampahTerkelola> listTerkelolaFilter = [];
   bool isLoadingTerkelola                   = false;
@@ -254,7 +225,7 @@ class _DataSampahPageState extends State<DataSampahPage>
   int totalTerkelola                        = 0;
   int lastPageTerkelola                     = 1;
 
-  // ---- Sampah Diserahkan ----
+  // Sampah Diserahkan
   List<SampahDiserahkan> listDiserahkan       = [];
   List<SampahDiserahkan> listDiserahkanFilter = [];
   bool isLoadingDiserahkan                    = false;
@@ -288,9 +259,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     super.dispose();
   }
 
-  // =========================================================
   // FETCH DATA MASTER (untuk dropdown form edit)
-  // =========================================================
   String get _masterDataUrl => ApiEndpoints.sampahTerkelola
       .replaceFirst(RegExp(r'/sampah-terkelola/?$'), '/master-data');
 
@@ -330,11 +299,11 @@ class _DataSampahPageState extends State<DataSampahPage>
         }
       }
     } catch (e) {
-      // diabaikan; dropdown akan kosong bila gagal, tidak membuat crash
+      // diabaikan dropdown akan kosong bila gagal, tidak membuat crash
     }
   }
 
-  // Filter jenis berdasarkan kategori terpilih (case-insensitive)
+  // Filter jenis berdasarkan kategori terpilih
   List<Map<String, dynamic>> _jenisByKategori(String? kategori) {
     if (kategori == null) return [];
     final k = kategori.toLowerCase();
@@ -343,7 +312,6 @@ class _DataSampahPageState extends State<DataSampahPage>
         .toList();
   }
 
-  // Cocokkan teks kategori (apa pun kapitalisasinya) ke salah satu id kategori tetap
   String? _matchKategori(List<Map<String, String>> list, String? raw) {
     if (raw == null) return null;
     final r = raw.toLowerCase();
@@ -362,9 +330,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     return f.isEmpty ? null : '${f['kategori_jenis']}';
   }
 
-  // =========================
   // FETCH SAMPAH TERKELOLA
-  // =========================
   Future<void> fetchSampahTerkelola({int page = 1}) async {
     if (mounted) setState(() { isLoadingTerkelola = true; errorTerkelola = ''; });
 
@@ -408,9 +374,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     }
   }
 
-  // =========================
   // FETCH SAMPAH DISERAHKAN
-  // =========================
   Future<void> fetchSampahDiserahkan({int page = 1}) async {
     if (mounted) setState(() { isLoadingDiserahkan = true; errorDiserahkan = ''; });
 
@@ -461,7 +425,6 @@ class _DataSampahPageState extends State<DataSampahPage>
   }
 
   void onSearchTerkelola(String query) {
-    // Pencarian berbasis tanggal (mis. ketik 19 -> hanya tgl 19), diproses di server.
     _debounceTerkelola?.cancel();
     _debounceTerkelola = Timer(const Duration(milliseconds: 450), () {
       fetchSampahTerkelola(page: 1);
@@ -469,16 +432,12 @@ class _DataSampahPageState extends State<DataSampahPage>
   }
 
   void onSearchDiserahkan(String query) {
-    // Pencarian berbasis tanggal (mis. ketik 19 -> hanya tgl 19), diproses di server.
     _debounceDiserahkan?.cancel();
     _debounceDiserahkan = Timer(const Duration(milliseconds: 450), () {
       fetchSampahDiserahkan(page: 1);
     });
   }
 
-  // =========================
-  // PERINGATAN: DELEGASI BELUM DIKERJAKAN PETUGAS
-  // =========================
   void _peringatanDelegasi() {
     Get.dialog(
       AlertDialog(
@@ -520,9 +479,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     );
   }
 
-  // =========================
-  // PILIH SUMBER FOTO (KAMERA / GALERI)
-  // =========================
+  // PILIH FOTO (KAMERA  GALERI)
   Future<File?> _pilihSumberFoto() async {
     final sumber = await Get.bottomSheet<ImageSource>(
       Container(
@@ -569,9 +526,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     return File(picked.path);
   }
 
-  // =========================
   // PREVIEW FOTO
-  // =========================
   void _previewFoto(String urlFoto) {
     Get.dialog(
       Dialog(
@@ -609,11 +564,9 @@ class _DataSampahPageState extends State<DataSampahPage>
     );
   }
 
-  // =========================
   // SHOW EDIT TERKELOLA
-  // =========================
     void _showEditTerkelola(SampahTerkelola item) {
-    // GUARD: baris delegasi yang belum dikerjakan petugas tidak boleh diedit admin.
+    // GUARD
     if (item.belumLengkap) {
       _peringatanDelegasi();
       return;
@@ -622,7 +575,6 @@ class _DataSampahPageState extends State<DataSampahPage>
     final beratC  = TextEditingController(text: "${item.beratKg}");
     final alasanC = TextEditingController(text: item.alasanEdit ?? '');
 
-    // Kategori tetap (Organik / Anorganik), diresolusi dari data existing
     String? resolvedKategori = _matchKategori(kategoriTerkelola, item.kategoriJenis)
         ?? _matchKategori(kategoriTerkelola, _kategoriFromIdJenis(item.idJenis));
 
@@ -638,12 +590,11 @@ class _DataSampahPageState extends State<DataSampahPage>
     bool isLoading           = false;
 
     Get.bottomSheet(
-      isScrollControlled: true, // Pastikan isScrollControlled bernilai true
+      isScrollControlled: true, 
       StatefulBuilder(
         builder: (context, setStateSheet) {
           final jenisItems = _jenisByKategori(selectedKategori);
           return Container(
-            // 1. Batasi tinggi maksimal agar tidak menabrak status bar
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
@@ -652,11 +603,9 @@ class _DataSampahPageState extends State<DataSampahPage>
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: SafeArea(
-              // 2. Bungkus dengan SafeArea untuk melindungi notches/sistem UI
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
                 child: Padding(
-                  // 3. Pindahkan viewInsets.bottom ke dalam ScrollView agar area scroll luas
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
@@ -844,11 +793,9 @@ class _DataSampahPageState extends State<DataSampahPage>
       ),
     );
   }
-  // =========================
   // SHOW EDIT DISERAHKAN
-  // =========================
     void _showEditDiserahkan(SampahDiserahkan item) {
-    // GUARD: baris delegasi yang belum dikerjakan petugas tidak boleh diedit admin.
+    // GUARD
     if (item.belumLengkap) {
       _peringatanDelegasi();
       return;
@@ -870,8 +817,6 @@ class _DataSampahPageState extends State<DataSampahPage>
     int? selectedJenis = _jenisByKategori(resolvedKategori)
             .any((e) => _asInt(e['id_jenis']) == item.idJenis)
         ? item.idJenis : null;
-
-    // Tujuan untuk edit = aktif + tujuan yang sedang dipakai (walau sudah nonaktif)
     final List<Map<String, dynamic>> tujuanItems = [...tujuanAktif];
     if (!tujuanItems.any((e) => _asInt(e['id_tujuan']) == item.idTujuan)) {
       final cur = tujuanAll.firstWhere(
@@ -887,12 +832,11 @@ class _DataSampahPageState extends State<DataSampahPage>
     bool isLoading           = false;
 
     Get.bottomSheet(
-      isScrollControlled: true, // Pastikan isScrollControlled bernilai true
+      isScrollControlled: true,
       StatefulBuilder(
         builder: (context, setStateSheet) {
           final jenisItems = _jenisByKategori(selectedKategori);
           return Container(
-            // 1. Batasi tinggi maksimal agar tidak menabrak status bar
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
@@ -901,11 +845,9 @@ class _DataSampahPageState extends State<DataSampahPage>
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: SafeArea(
-              // 2. Bungkus dengan SafeArea
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16),
                 child: Padding(
-                  // 3. Pindahkan viewInsets.bottom ke dalam ScrollView agar area scroll luas
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).viewInsets.bottom,
                   ),
@@ -1110,9 +1052,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     );
   }
 
-  // =========================
   // BUILD
-  // =========================
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -1161,9 +1101,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold,
   );
 
-  // =========================
   // TAB TERKELOLA
-  // =========================
   Widget _buildTerkelolaTab() {
     if (isLoadingTerkelola) return const Center(child: CircularProgressIndicator());
     if (errorTerkelola.isNotEmpty) {
@@ -1261,9 +1199,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     );
   }
 
-  // =========================
   // TAB DISERAHKAN
-  // =========================
   Widget _buildDiserahkanTab() {
     if (isLoadingDiserahkan) return const Center(child: CircularProgressIndicator());
     if (errorDiserahkan.isNotEmpty) {
@@ -1375,9 +1311,6 @@ class _DataSampahPageState extends State<DataSampahPage>
     );
   }
 
-  // =========================
-  // SHARED WIDGETS
-  // =========================
   Widget _buildFotoWidget(String? foto) {
     if (foto == null) return const Text("-", style: TextStyle(fontSize: 11), textAlign: TextAlign.center);
     return GestureDetector(
@@ -1390,11 +1323,6 @@ class _DataSampahPageState extends State<DataSampahPage>
     );
   }
 
-  // Tombol aksi admin.
-  // - Baris normal/lengkap: Edit + Hapus.
-  // - Baris delegasi belum dikerjakan petugas (belumLengkap): tombol
-  //   "Menunggu" (kuning) yang saat ditekan menampilkan peringatan,
-  //   TANPA tombol Hapus (admin tidak boleh menyentuh delegasi belum jadi).
   Widget _buildAksiButtons({
     required VoidCallback onEdit,
     required VoidCallback onHapus,
@@ -1611,9 +1539,7 @@ class _DataSampahPageState extends State<DataSampahPage>
     );
   }
 
-  // =========================
-  // HELPER EDIT WIDGETS
-  // =========================
+  // HELPER EDIT
   Widget _editLabel(String text, {bool required = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

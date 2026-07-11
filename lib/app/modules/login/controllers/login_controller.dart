@@ -41,20 +41,18 @@ class LoginController extends GetxController {
         await prefs.setString('login_as', role);
         await prefs.setString('name', userData['data']['user']['name']);
         await prefs.setString('id_user', userData['data']['user']['id'].toString());
-        // Pastikan penulisan token benar-benar ter-commit sebelum pindah
-        // halaman, agar dashboard tidak membaca token kosong/lama (cegah 401 palsu).
         await prefs.reload();
 
         Get.snackbar("Berhasil", "Login Berhasil");
 
         // Arahkan sesuai role
         if (role == 'petugas') {
-           await DelegasiNotifService.instance.start();   // <-- TAMBAH
+           await DelegasiNotifService.instance.start();  // Mulai notif
           Get.offAllNamed('/home');
         } else if (role == 'admin') {
           Get.offAllNamed('/admin');
         } else {
-          // super_admin atau role lain → ditolak sementara
+          // tolak role lain
           await prefs.clear();
           Get.snackbar(
             "Akses Ditolak",
@@ -77,7 +75,7 @@ class LoginController extends GetxController {
   }
 
   Future<void> logout() async {
-    DelegasiNotifService.instance.stop(); // ← TAMBAHKAN INI (baris pertama)
+    DelegasiNotifService.instance.stop(); // Penghentian Notif
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     Get.snackbar("Berhasil", "Anda telah logout");

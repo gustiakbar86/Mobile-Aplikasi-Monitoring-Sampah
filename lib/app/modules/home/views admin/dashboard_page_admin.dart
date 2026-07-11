@@ -99,7 +99,7 @@ class _DashboardPageAdminState extends State<DashboardPageAdmin> {
   }
 
   Future<void> logout() async {
-    DelegasiNotifService.instance.stop(); // ← TAMBAHKAN INI
+    DelegasiNotifService.instance.stop(); 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('id_user');
@@ -196,11 +196,9 @@ class _DashboardPageAdminState extends State<DashboardPageAdmin> {
     });
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.reload(); // pastikan baca token terbaru (mis. sesudah login ulang)
+      await prefs.reload(); 
       final token = prefs.getString('token') ?? '';
 
-      // Jika token kosong padahal belum retry, tunggu sebentar lalu coba lagi
-      // (menghindari race saat baru login: token belum sempat tersimpan).
       if (token.isEmpty && !isRetry) {
         await Future.delayed(const Duration(milliseconds: 400));
         return fetchData(isRetry: true);
@@ -212,9 +210,6 @@ class _DashboardPageAdminState extends State<DashboardPageAdmin> {
           await _fetchAll(ApiEndpoints.sampahDiserahkan, token, true);
       setState(() => isLoading = false);
     } on _Unauthorized {
-      // Jangan langsung akhiri sesi pada 401 pertama saat baru login.
-      // Coba sekali lagi dengan token yang dibaca ulang; bila tetap 401,
-      // barulah anggap sesi benar-benar berakhir.
       if (!isRetry) {
         await Future.delayed(const Duration(milliseconds: 400));
         return fetchData(isRetry: true);
